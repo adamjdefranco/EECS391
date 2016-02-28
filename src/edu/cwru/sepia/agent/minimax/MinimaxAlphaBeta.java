@@ -7,6 +7,7 @@ import edu.cwru.sepia.environment.model.state.State;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -74,6 +75,7 @@ public class MinimaxAlphaBeta extends Agent {
      */
     public GameStateChild alphaBetaSearch(GameStateChild node, int depth, double alpha, double beta)
     {
+        //TODO implement
         return node;
     }
 
@@ -92,6 +94,7 @@ public class MinimaxAlphaBeta extends Agent {
      */
     public List<GameStateChild> orderChildrenWithHeuristics(List<GameStateChild> children)
     {
+        children.sort((o1, o2) -> Double.compare(o1.state.getUtility(),o2.state.getUtility()));
         return children;
     }
 }
