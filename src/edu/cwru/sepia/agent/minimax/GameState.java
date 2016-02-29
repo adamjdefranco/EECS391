@@ -1,13 +1,18 @@
 package edu.cwru.sepia.agent.minimax;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionType;
+import edu.cwru.sepia.action.DirectedAction;
+import edu.cwru.sepia.action.TargetedAction;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
+import edu.cwru.sepia.util.Direction;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * This class stores all of the information the agent
@@ -21,38 +26,54 @@ public class GameState {
 
     int mapX;
     int mapY;
-    List<ResourceNode.ResourceView> allObstacles;
-    State.StateView view;
-    List<Unit.UnitView> allUnits;
+    Set<String> takenResourceLocations = new HashSet<>();
+    Map<Integer, BetterUnit> allUnits;
+    public State.StateView view;
     BetterUnit footman1;
     BetterUnit footman2;
     BetterUnit archer1;
     BetterUnit archer2;
+    private int myPlayerID = -1;
+    private List<Integer> myUnitIds;
+    private List<Integer> enemyUnitIds;
 
     public class BetterUnit {
+        public final int id;
         public int x;
         public int y;
         public int range;
         public int health;
         public int player;
+        public int damage;
 
         public BetterUnit(Unit.UnitView unit) {
+            this.id = unit.getID();
             this.x = unit.getXPosition();
             this.y = unit.getYPosition();
             this.range = unit.getTemplateView().getRange();
             this.health = unit.getHP();
             this.player = unit.getTemplateView().getPlayer();
+            this.damage = unit.getTemplateView().getBasicAttack();
         }
 
-        public boolean willAttack(BetterUnit unit) {
+        public boolean canAttack(BetterUnit unit) {
             return //Not on the same team
                     unit.player != this.player &&
                             //Both units are alive
                             this.health > 0 && unit.health > 0 &&
                             //Either they are aligned on the x or y axis and in range
-                            ((Math.abs(this.x - unit.x) < this.range && this.y == unit.y)
+                            ((Math.abs(this.x - unit.x) < this.range && this.y == unit.y && !isObstructedX(this.y, this.x, unit.x))
                                     ||
-                                    (Math.abs(this.y - unit.y) < this.range && this.x == unit.x));
+                                    (Math.abs(this.y - unit.y) < this.range && this.x == unit.x && !isObstructedY(this.x, this.y, unit.y)));
+        }
+
+        public void doAttack(BetterUnit unit) {
+            unit.health = Math.min(0, unit.health - this.damage);
+        }
+
+        public void move(int dx, int dy) {
+            x += dx;
+            y += dy;
         }
     }
 
@@ -81,10 +102,13 @@ public class GameState {
      * @param state Current state of the episode
      */
     public GameState(State.StateView state) {
-        allUnits = state.getAllUnits();
+        allUnits = state.getAllUnits().stream().map(BetterUnit::new).collect(Collectors.toMap((Function<BetterUnit, Integer>) betterUnit -> betterUnit.id, (Function<BetterUnit, BetterUnit>) betterUnit -> betterUnit));
         mapX = state.getXExtent();
         mapY = state.getYExtent();
-        allObstacles = state.getAllResourceNodes();
+        state.getAllResourceNodes().stream().forEach(resourceView -> {
+            String loc = resourceView.getXPosition()+" "+resourceView.getYPosition();
+            takenResourceLocations.add(loc);
+        });
         this.view = state;
     }
 
@@ -128,7 +152,80 @@ public class GameState {
      */
     public List<GameStateChild> getChildren() {
         List<GameStateChild> children = new ArrayList<>();
+        if (isMyTurn) {
+            //It's my turn. Generate new moves for the footmen
+        } else {
+            //It's the archer's turns. Generate moves for the archers.
+        }
         return children;
+    }
+
+    private static boolean isValidMoveDirection(Direction d) {
+        return d.equals(Direction.NORTH) || d.equals(Direction.SOUTH) || d.equals(Direction.EAST) || d.equals(Direction.WEST);
+    }
+
+    public void computeUnitLists(int myPlayerID) {
+        this.myPlayerID = myPlayerID;
+        myUnitIds = this.view.getUnitIds(myPlayerID);
+        if (myUnitIds.size() > 0) {
+            footman1 = allUnits.get(myUnitIds.get(0));
+            if (myUnitIds.size() > 1) {
+                footman2 = allUnits.get(myUnitIds.get(1));
+            }
+        }
+        enemyUnitIds = this.view.getAllUnitIds().stream().filter(integer -> allUnits.get(integer).player != myPlayerID).collect(Collectors.toList());
+        if (enemyUnitIds.size() > 0) {
+            archer1 = allUnits.get(enemyUnitIds.get(0));
+            if(enemyUnitIds.size() > 1){
+                archer2 = allUnits.get(enemyUnitIds.get(1));
+            }
+        }
+
+    }
+
+    private boolean isObstructedX(int baseY, int pos, int goal) {
+        int min = Math.min(pos, goal);
+        int max = Math.min(pos, goal);
+        for(int i=min; i<=max; i++){
+            String str = i + " " + baseY;
+            if(takenResourceLocations.contains(str)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isObstructedY(int baseX, int pos, int goal) {
+        int min = Math.min(pos,goal);
+        int max = Math.max(pos,goal);
+        for(int i=min; i<=max; i++){
+            String str = baseX + " " + i;
+            if(takenResourceLocations.contains(str)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
+        GameState g = new GameState(state);
+        g.computeUnitLists(this.myPlayerID);
+        GameStateChild newChild = new GameStateChild(unitActions, g);
+        unitActions.forEach((integer, action) -> {
+            BetterUnit unit = newChild.state.allUnits.get(integer);
+            if (action.getType() == ActionType.PRIMITIVEMOVE) {
+                DirectedAction actualAction = (DirectedAction) action;
+                unit.move(actualAction.getDirection().xComponent(), actualAction.getDirection().yComponent());
+            } else if (action.getType() == ActionType.PRIMITIVEATTACK) {
+                TargetedAction actualAction = (TargetedAction) action;
+                BetterUnit target = newChild.state.allUnits.get(actualAction.getTargetId());
+                BetterUnit attacker = newChild.state.allUnits.get(actualAction.getUnitId());
+                attacker.doAttack(target);
+            } else {
+                //Do nothing - this state should never be seen.
+            }
+        });
+        return newChild;
     }
 
 }
