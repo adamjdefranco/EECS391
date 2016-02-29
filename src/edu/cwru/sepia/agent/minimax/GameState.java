@@ -154,10 +154,77 @@ public class GameState {
         List<GameStateChild> children = new ArrayList<>();
         if (isMyTurn) {
             //It's my turn. Generate new moves for the footmen
+            //All the valid actions directions for footman 1
+            for(Action footman1Action : validActionsForUnit(footman1)){
+                for(Action footman2Action : validActionsForUnit(footman2)){
+                    Map<Integer,Action> actions = new HashMap<>();
+                    actions.put(footman1.id,footman1Action);
+                    actions.put(footman2.id, footman2Action);
+                    GameStateChild child = childFromStateWithAction(view,actions);
+                    children.add(child);
+                }
+            }
         } else {
             //It's the archer's turns. Generate moves for the archers.
+            for(Action archer1Action : validActionsForUnit(archer1)){
+                for(Action archer2Action : validActionsForUnit(archer2)){
+                    Map<Integer,Action> actions = new HashMap<>();
+                    actions.put(archer1.id,archer1Action);
+                    actions.put(archer2.id, archer2Action);
+                    GameStateChild child = childFromStateWithAction(view,actions);
+                    children.add(child);
+                }
+            }
         }
         return children;
+    }
+
+    private List<Action> validActionsForUnit(BetterUnit unit){
+        List<Action> actions = new ArrayList<>();
+
+        //Get all valid action movements
+        for(Direction d : Direction.values()){
+            if(isValidMoveDirection(d) && validMoveInDirection(unit.x, unit.y,d)){
+                DirectedAction moveAction = new DirectedAction(unit.id, ActionType.PRIMITIVEMOVE,d);
+                actions.add(moveAction);
+            }
+        }
+
+        //Check and see if you can attack any enemies
+        for(Integer id : enemyUnitIds){
+            BetterUnit enemy = allUnits.get(id);
+            if(unit.canAttack(enemy)){
+                TargetedAction attackAction = new TargetedAction(unit.id,ActionType.PRIMITIVEATTACK,id);
+                actions.add(attackAction);
+            }
+        }
+        return actions;
+    }
+
+    private boolean validMoveInDirection(int x, int y, Direction dir){
+        int newX = x + dir.xComponent();
+        int newY = y + dir.yComponent();
+        //Check to make sure that coordinate is in the map
+        //Check x coordinate
+        if(newX < 0 || newX >= mapX){
+            return false;
+        }
+        if(newY < 0 || newY >= mapY){
+            return false;
+        }
+
+        //Check against other units
+        for(BetterUnit unit : allUnits.values()){
+            if(unit.x == newX && unit.y == newY){
+                return false;
+            }
+        }
+
+        //Check to make sure its not obstructed by obstacles
+        if(resourceAtLocation(x,y)){
+            return false;
+        }
+        return false;
     }
 
     private static boolean isValidMoveDirection(Direction d) {
@@ -199,12 +266,16 @@ public class GameState {
         int min = Math.min(pos,goal);
         int max = Math.max(pos,goal);
         for(int i=min; i<=max; i++){
-            String str = baseX + " " + i;
-            if(takenResourceLocations.contains(str)){
+            if(resourceAtLocation(baseX, i)){
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean resourceAtLocation(int x, int y){
+        String str = x + " " + y;
+        return takenResourceLocations.contains(str);
     }
 
     private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
