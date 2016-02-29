@@ -224,7 +224,7 @@ public class GameState {
         if(resourceAtLocation(x,y)){
             return false;
         }
-        return false;
+        return true;
     }
 
     private static boolean isValidMoveDirection(Direction d) {
