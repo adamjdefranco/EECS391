@@ -80,7 +80,7 @@ public class GameState {
                     unit.player != this.player &&
                             //Either they are aligned on the x or y axis and in range
                             ((Math.abs(this.x - unit.x) <= this.range)
-                                    ||
+                                    &&
                                     (Math.abs(this.y - unit.y) <= this.range));
         }
 
@@ -266,7 +266,7 @@ public class GameState {
         } else {
             //It's the archer's turns. Generate moves for the archers.
             //Check and see if both the archers are available and alive. If so, generate all moves for both
-            if (archer1 != null && archer1.isAlive() && archer2 != null && archer2.isAlive()) {
+            if (archer1.isAlive() && archer2.isAlive()) {
                 for (Action archer1Action : validActionsForUnit(archer1)) {
                     for (Action archer2Action : validActionsForUnit(archer2)) {
                         Map<Integer, Action> actions = new HashMap<>();
@@ -276,14 +276,14 @@ public class GameState {
                         children.add(child);
                     }
                 }
-            } else if (archer1 != null && archer1.isAlive()) {
+            } else if (archer1.isAlive()) {
                 for (Action archer1Action : validActionsForUnit(archer1)) {
                     Map<Integer, Action> actions = new HashMap<>();
                     actions.put(archer1.id, archer1Action);
                     GameStateChild child = childFromStateWithAction(view, actions);
                     children.add(child);
                 }
-            } else if (archer2 != null && archer2.isAlive()) {
+            } else if (archer2.isAlive()) {
                 for (Action archer2Action : validActionsForUnit(archer2)) {
                     Map<Integer, Action> actions = new HashMap<>();
                     actions.put(archer2.id, archer2Action);
