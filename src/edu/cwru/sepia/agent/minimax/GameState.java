@@ -281,6 +281,7 @@ public class GameState {
     private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
         GameState g = new GameState(state);
         g.computeUnitLists(this.myPlayerID);
+        g.isMyTurn = !isMyTurn;
         GameStateChild newChild = new GameStateChild(unitActions, g);
         unitActions.forEach((integer, action) -> {
             BetterUnit unit = newChild.state.allUnits.get(integer);
