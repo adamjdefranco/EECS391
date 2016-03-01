@@ -8,6 +8,7 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 import edu.cwru.sepia.util.Direction;
+import edu.cwru.sepia.util.Pair;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -45,6 +46,8 @@ public class GameState {
         public int health;
         public int player;
         public int damage;
+        public int maxHealth;
+        public int healthPercent;
 
         public BetterUnit(Unit.UnitView unit) {
             this.id = unit.getID();
@@ -54,26 +57,44 @@ public class GameState {
             this.health = unit.getHP();
             this.player = unit.getTemplateView().getPlayer();
             this.damage = unit.getTemplateView().getBasicAttack();
+            this.maxHealth = unit.getTemplateView().getBaseHealth();
+            this.healthPercent = ((int)(((float)health)/(float)maxHealth));
+        }
+
+        public BetterUnit(){
+            this.id = -1;
+            this.x = -1;
+            this.y = -1;
+            this.range = 0;
+            this.health = 0;
+            this.player = -1;
+            this.damage = 0;
+            this.maxHealth = 0;
+            this.healthPercent = 0;
         }
 
         public boolean canAttack(BetterUnit unit) {
-            return //Not on the same team
+            return //Both units are alive
+                    this.health > 0 && unit.health > 0 &&
+                    //Not on the same team
                     unit.player != this.player &&
-                            //Both units are alive
-                            this.health > 0 && unit.health > 0 &&
                             //Either they are aligned on the x or y axis and in range
-                            ((Math.abs(this.x - unit.x) <= this.range && this.y == unit.y && !isObstructedX(this.y, this.x, unit.x))
+                            ((Math.abs(this.x - unit.x) <= this.range)
                                     ||
-                                    (Math.abs(this.y - unit.y) <= this.range && this.x == unit.x && !isObstructedY(this.x, this.y, unit.y)));
+                                    (Math.abs(this.y - unit.y) <= this.range));
         }
 
         public void doAttack(BetterUnit unit) {
-            unit.health = Math.min(0, unit.health - this.damage);
+            if(this.isAlive()) {
+                unit.health = Math.min(0, unit.health - this.damage);
+            }
         }
 
         public void move(int dx, int dy) {
-            x += dx;
-            y += dy;
+            if(this.isAlive()) {
+                x += dx;
+                y += dy;
+            }
         }
 
         public boolean isAlive() {
@@ -137,44 +158,49 @@ public class GameState {
     public double getUtility() {
         double utility = 0.0;
 
-        // Edits utility based on footman1's ability to attack, health, and distance from archer1
-        if(footman1.canAttack(archer1) || (archer2 != null && footman1.canAttack(archer2))) {
-            utility += 500;
-        }
-        utility -= getDistanceBetweenUnits(footman1, archer1);
-        if(archer2 != null) {
-            utility -= getDistanceBetweenUnits(footman1, archer2);
-        }
-        utility += footman1.health;
-
-        // Edits utility based on footman2's ability to attack, health, and distance from archer2
-        if(footman2 != null) {
-            if(footman1.canAttack(archer1) || (archer2 != null && footman1.canAttack(archer2))) {
+        if(footman1.isAlive()) {
+            // Edits utility based on footman1's ability to attack, health, and distance from archer1
+            if((archer1.isAlive() && footman1.canAttack(archer1)) || (archer2.isAlive() && footman1.canAttack(archer2))) {
                 utility += 500;
             }
-            utility -= getDistanceBetweenUnits(footman2, archer1);
-            if(archer2 != null) {
+            if (archer1.isAlive()) {
+                utility -= getDistanceBetweenUnits(footman1, archer1);
+            }
+            if (archer2.isAlive()) {
+                utility -= getDistanceBetweenUnits(footman1, archer2);
+            }
+            utility += footman1.healthPercent;
+        }
+        // Edits utility based on footman2's ability to attack, health, and distance from archer2
+        if(footman2.isAlive()) {
+            if(footman2.canAttack(archer1) || (archer2.isAlive() && footman2.canAttack(archer2))) {
+                utility += 500;
+            }
+            if(archer1.isAlive()) {
+                utility -= getDistanceBetweenUnits(footman2, archer1);
+            }
+            if(archer2.isAlive()) {
                 utility -= getDistanceBetweenUnits(footman2, archer2);
             }
-            utility += footman2.health;
+            utility += footman2.healthPercent;
         }
 
         // Edits utility based on archer1's ability to attack and health
-        if(archer1 != null) {
-            if(archer1.canAttack(footman1) || (footman2 != null && archer1.canAttack(footman2))) {
-                utility += 500;
+        if(archer1.isAlive()) {
+            if((footman1.isAlive() && archer1.canAttack(footman1)) || (footman2.isAlive() && archer1.canAttack(footman2))) {
+                utility -= 500;
             }
-            utility -= archer1.health;
+            utility += ((float)(archer1.maxHealth - archer1.health)/archer1.maxHealth)*100;
         } else {
             utility += 1000;
         }
 
         // Edits utility based on archer1's ability to attack and health
-        if(archer2 != null) {
-            if(archer2.canAttack(footman2) || (footman1 != null && archer2.canAttack(footman1))) {
-                utility += 500;
+        if(archer2.isAlive()) {
+            if((footman2.isAlive() && archer2.canAttack(footman2)) || (footman1.isAlive() && archer2.canAttack(footman1))) {
+                utility -= 500;
             }
-            utility -= archer2.health;
+            utility += ((float)(archer2.maxHealth - archer2.health)/archer2.maxHealth)*100;
         } else {
             utility += 1000;
         }
@@ -328,16 +354,25 @@ public class GameState {
             footman1 = allUnits.get(myUnitIds.get(0));
             if (myUnitIds.size() > 1) {
                 footman2 = allUnits.get(myUnitIds.get(1));
+            } else {
+                footman2 = new BetterUnit();
             }
+        } else {
+            footman1 = new BetterUnit();
+            footman2 = new BetterUnit();
         }
         enemyUnitIds = this.view.getAllUnitIds().stream().filter(integer -> allUnits.get(integer).player != myPlayerID).collect(Collectors.toList());
         if (enemyUnitIds.size() > 0) {
             archer1 = allUnits.get(enemyUnitIds.get(0));
             if (enemyUnitIds.size() > 1) {
                 archer2 = allUnits.get(enemyUnitIds.get(1));
+            } else {
+                archer2 = new BetterUnit();
             }
+        } else {
+            archer1 = new BetterUnit();
+            archer2 = new BetterUnit();
         }
-
     }
 
     private boolean isObstructedX(int baseY, int pos, int goal) {
