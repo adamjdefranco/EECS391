@@ -281,6 +281,7 @@ public class GameState {
     private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
         GameState g = new GameState(state);
         g.computeUnitLists(this.myPlayerID);
+        g.isMyTurn = !isMyTurn;
         GameStateChild newChild = new GameStateChild(unitActions, g);
         unitActions.forEach((integer, action) -> {
             BetterUnit unit = newChild.state.allUnits.get(integer);
@@ -297,6 +298,26 @@ public class GameState {
             }
         });
         return newChild;
+    }
+
+    public boolean allMyUnitsDead(){
+        for(Integer id : myUnitIds){
+            BetterUnit unit = allUnits.get(id);
+            if(unit.health > 0){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean allEnemyUnitsDead(){
+        for(Integer id : enemyUnitIds){
+            BetterUnit unit = allUnits.get(id);
+            if(unit.health > 0){
+                return false;
+            }
+        }
+        return true;
     }
 
 }
