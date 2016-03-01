@@ -75,6 +75,10 @@ public class GameState {
             x += dx;
             y += dy;
         }
+
+        public boolean isAlive() {
+            return this.health > 0;
+        }
     }
 
     //Boolean for tracking if it is my turn or the enemy agents. Is set externally in the a-b search
@@ -106,7 +110,7 @@ public class GameState {
         mapX = state.getXExtent();
         mapY = state.getYExtent();
         state.getAllResourceNodes().stream().forEach(resourceView -> {
-            String loc = resourceView.getXPosition()+" "+resourceView.getYPosition();
+            String loc = resourceView.getXPosition() + " " + resourceView.getYPosition();
             takenResourceLocations.add(loc);
         });
         this.view = state;
@@ -154,24 +158,59 @@ public class GameState {
         List<GameStateChild> children = new ArrayList<>();
         if (isMyTurn) {
             //It's my turn. Generate new moves for the footmen
-            //All the valid actions directions for footman 1
-            for(Action footman1Action : validActionsForUnit(footman1)){
-                for(Action footman2Action : validActionsForUnit(footman2)){
-                    Map<Integer,Action> actions = new HashMap<>();
-                    actions.put(footman1.id,footman1Action);
+            //Check and see if both footman are alive. If so, compute all joint actions.
+            if (footman1 != null && footman2 != null && footman1.isAlive() && footman2.isAlive()) {
+                //All the valid actions directions for footman 1
+                for (Action footman1Action : validActionsForUnit(footman1)) {
+                    for (Action footman2Action : validActionsForUnit(footman2)) {
+                        Map<Integer, Action> actions = new HashMap<>();
+                        actions.put(footman1.id, footman1Action);
+                        actions.put(footman2.id, footman2Action);
+                        GameStateChild child = childFromStateWithAction(view, actions);
+                        children.add(child);
+                    }
+                }
+            } else if (footman1 != null && footman1.isAlive()) {
+                //All the valid actions directions for footman 1
+                for (Action footman1Action : validActionsForUnit(footman1)) {
+                    Map<Integer, Action> actions = new HashMap<>();
+                    actions.put(footman1.id, footman1Action);
+                    GameStateChild child = childFromStateWithAction(view, actions);
+                    children.add(child);
+                }
+            } else if (footman2 != null && footman2.isAlive()) {
+                for (Action footman2Action : validActionsForUnit(footman2)) {
+                    Map<Integer, Action> actions = new HashMap<>();
                     actions.put(footman2.id, footman2Action);
-                    GameStateChild child = childFromStateWithAction(view,actions);
+                    GameStateChild child = childFromStateWithAction(view, actions);
                     children.add(child);
                 }
             }
         } else {
             //It's the archer's turns. Generate moves for the archers.
-            for(Action archer1Action : validActionsForUnit(archer1)){
-                for(Action archer2Action : validActionsForUnit(archer2)){
-                    Map<Integer,Action> actions = new HashMap<>();
-                    actions.put(archer1.id,archer1Action);
+            //Check and see if both the archers are available and alive. If so, generate all moves for both
+            if (archer1 != null && archer1.isAlive() && archer2 != null && archer2.isAlive()) {
+                for (Action archer1Action : validActionsForUnit(archer1)) {
+                    for (Action archer2Action : validActionsForUnit(archer2)) {
+                        Map<Integer, Action> actions = new HashMap<>();
+                        actions.put(archer1.id, archer1Action);
+                        actions.put(archer2.id, archer2Action);
+                        GameStateChild child = childFromStateWithAction(view, actions);
+                        children.add(child);
+                    }
+                }
+            } else if (archer1 != null && archer1.isAlive()) {
+                for (Action archer1Action : validActionsForUnit(archer1)) {
+                    Map<Integer, Action> actions = new HashMap<>();
+                    actions.put(archer1.id, archer1Action);
+                    GameStateChild child = childFromStateWithAction(view, actions);
+                    children.add(child);
+                }
+            } else if (archer2 != null && archer2.isAlive()) {
+                for (Action archer2Action : validActionsForUnit(archer2)) {
+                    Map<Integer, Action> actions = new HashMap<>();
                     actions.put(archer2.id, archer2Action);
-                    GameStateChild child = childFromStateWithAction(view,actions);
+                    GameStateChild child = childFromStateWithAction(view, actions);
                     children.add(child);
                 }
             }
@@ -179,49 +218,49 @@ public class GameState {
         return children;
     }
 
-    private List<Action> validActionsForUnit(BetterUnit unit){
+    private List<Action> validActionsForUnit(BetterUnit unit) {
         List<Action> actions = new ArrayList<>();
 
         //Get all valid action movements
-        for(Direction d : Direction.values()){
-            if(isValidMoveDirection(d) && validMoveInDirection(unit.x, unit.y,d)){
-                DirectedAction moveAction = new DirectedAction(unit.id, ActionType.PRIMITIVEMOVE,d);
+        for (Direction d : Direction.values()) {
+            if (isValidMoveDirection(d) && validMoveInDirection(unit.x, unit.y, d)) {
+                DirectedAction moveAction = new DirectedAction(unit.id, ActionType.PRIMITIVEMOVE, d);
                 actions.add(moveAction);
             }
         }
 
         //Check and see if you can attack any enemies
-        for(Integer id : enemyUnitIds){
+        for (Integer id : enemyUnitIds) {
             BetterUnit enemy = allUnits.get(id);
-            if(unit.canAttack(enemy)){
-                TargetedAction attackAction = new TargetedAction(unit.id,ActionType.PRIMITIVEATTACK,id);
+            if (unit.canAttack(enemy)) {
+                TargetedAction attackAction = new TargetedAction(unit.id, ActionType.PRIMITIVEATTACK, id);
                 actions.add(attackAction);
             }
         }
         return actions;
     }
 
-    private boolean validMoveInDirection(int x, int y, Direction dir){
+    private boolean validMoveInDirection(int x, int y, Direction dir) {
         int newX = x + dir.xComponent();
         int newY = y + dir.yComponent();
         //Check to make sure that coordinate is in the map
         //Check x coordinate
-        if(newX < 0 || newX >= mapX){
+        if (newX < 0 || newX >= mapX) {
             return false;
         }
-        if(newY < 0 || newY >= mapY){
+        if (newY < 0 || newY >= mapY) {
             return false;
         }
 
         //Check against other units
-        for(BetterUnit unit : allUnits.values()){
-            if(unit.x == newX && unit.y == newY){
+        for (BetterUnit unit : allUnits.values()) {
+            if (unit.x == newX && unit.y == newY) {
                 return false;
             }
         }
 
         //Check to make sure its not obstructed by obstacles
-        if(resourceAtLocation(x,y)){
+        if (resourceAtLocation(x, y)) {
             return false;
         }
         return true;
@@ -243,7 +282,7 @@ public class GameState {
         enemyUnitIds = this.view.getAllUnitIds().stream().filter(integer -> allUnits.get(integer).player != myPlayerID).collect(Collectors.toList());
         if (enemyUnitIds.size() > 0) {
             archer1 = allUnits.get(enemyUnitIds.get(0));
-            if(enemyUnitIds.size() > 1){
+            if (enemyUnitIds.size() > 1) {
                 archer2 = allUnits.get(enemyUnitIds.get(1));
             }
         }
@@ -253,9 +292,9 @@ public class GameState {
     private boolean isObstructedX(int baseY, int pos, int goal) {
         int min = Math.min(pos, goal);
         int max = Math.min(pos, goal);
-        for(int i=min; i<=max; i++){
+        for (int i = min; i <= max; i++) {
             String str = i + " " + baseY;
-            if(takenResourceLocations.contains(str)){
+            if (takenResourceLocations.contains(str)) {
                 return true;
             }
         }
@@ -263,17 +302,17 @@ public class GameState {
     }
 
     private boolean isObstructedY(int baseX, int pos, int goal) {
-        int min = Math.min(pos,goal);
-        int max = Math.max(pos,goal);
-        for(int i=min; i<=max; i++){
-            if(resourceAtLocation(baseX, i)){
+        int min = Math.min(pos, goal);
+        int max = Math.max(pos, goal);
+        for (int i = min; i <= max; i++) {
+            if (resourceAtLocation(baseX, i)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean resourceAtLocation(int x, int y){
+    private boolean resourceAtLocation(int x, int y) {
         String str = x + " " + y;
         return takenResourceLocations.contains(str);
     }
@@ -300,20 +339,20 @@ public class GameState {
         return newChild;
     }
 
-    public boolean allMyUnitsDead(){
-        for(Integer id : myUnitIds){
+    public boolean allMyUnitsDead() {
+        for (Integer id : myUnitIds) {
             BetterUnit unit = allUnits.get(id);
-            if(unit.health > 0){
+            if (unit.health > 0) {
                 return false;
             }
         }
         return true;
     }
 
-    public boolean allEnemyUnitsDead(){
-        for(Integer id : enemyUnitIds){
+    public boolean allEnemyUnitsDead() {
+        for (Integer id : enemyUnitIds) {
             BetterUnit unit = allUnits.get(id);
-            if(unit.health > 0){
+            if (unit.health > 0) {
                 return false;
             }
         }
