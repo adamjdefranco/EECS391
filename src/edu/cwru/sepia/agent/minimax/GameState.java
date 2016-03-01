@@ -300,4 +300,24 @@ public class GameState {
         return newChild;
     }
 
+    public boolean allMyUnitsDead(){
+        for(Integer id : myUnitIds){
+            BetterUnit unit = allUnits.get(id);
+            if(unit.health > 0){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean allEnemyUnitsDead(){
+        for(Integer id : enemyUnitIds){
+            BetterUnit unit = allUnits.get(id);
+            if(unit.health > 0){
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
