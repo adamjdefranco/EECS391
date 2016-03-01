@@ -8,7 +8,6 @@ import edu.cwru.sepia.environment.model.state.State;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -75,22 +74,21 @@ public class MinimaxAlphaBeta extends Agent {
      * @return The best child of this node with updated values
      */
     public GameStateChild alphaBetaSearch(GameStateChild node, int depth, double alpha, double beta) {
-        double value;
-        GameStateChild nodeToReturn;
-
-        //TODO: if node is terminal node
         if (depth == 0 || node.state.allMyUnitsDead() || node.state.allEnemyUnitsDead()) {
             return node;
         }
+        
+        double value;
+        GameStateChild nodeToReturn;
 
-        // Maximizing
+        List<GameStateChild> nodeChildren = orderChildrenWithHeuristics(node.state.getChildren());
+        //Maximizing
         if (node.state.isMyTurn) {
             value = Double.NEGATIVE_INFINITY;
             // Reverse the ordered list of children for maximizing so the list goes from largest to smallest
-            List<GameStateChild> children = orderChildrenWithHeuristics(node.state.getChildren());
-            Collections.reverse(children);
-            nodeToReturn = children.get(0);
-            for (GameStateChild child : children) {
+            Collections.reverse(nodeChildren);
+            nodeToReturn = nodeChildren.get(0);
+            for (GameStateChild child : nodeChildren) {
                 GameStateChild childsBestNode = alphaBetaSearch(child, depth - 1, alpha, beta);
                 if(childsBestNode.state.getUtility() > value) {
                     value = childsBestNode.state.getUtility();
@@ -106,9 +104,8 @@ public class MinimaxAlphaBeta extends Agent {
             // Minimizing
         } else {
             value = Double.POSITIVE_INFINITY;
-            List<GameStateChild> children = orderChildrenWithHeuristics(node.state.getChildren());
-            nodeToReturn = children.get(0);
-            for (GameStateChild child : children) {
+            nodeToReturn = nodeChildren.get(0);
+            for (GameStateChild child : nodeChildren) {
                 GameStateChild childsBestNode = alphaBetaSearch(child, depth - 1, alpha, beta);
                 if(childsBestNode.state.getUtility() < value) {
                     value = childsBestNode.state.getUtility();
