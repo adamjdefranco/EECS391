@@ -131,7 +131,58 @@ public class GameState {
      * @return The weighted linear combination of the features
      */
     public double getUtility() {
-        return 0.0;
+        double utility = 0.0;
+
+        // Edits utility based on footman1's ability to attack, health, and distance from archer1
+        if(footman1.canAttack(archer1) || (archer2 != null && footman1.canAttack(archer2))) {
+            utility += 500;
+        }
+        utility -= getDistanceBetweenUnits(footman1, archer1);
+        if(archer2 != null) {
+            utility -= getDistanceBetweenUnits(footman1, archer2);
+        }
+        utility += footman1.health;
+
+        // Edits utility based on footman2's ability to attack, health, and distance from archer2
+        if(footman2 != null) {
+            if(footman1.canAttack(archer1) || (archer2 != null && footman1.canAttack(archer2))) {
+                utility += 500;
+            }
+            utility -= getDistanceBetweenUnits(footman2, archer1);
+            if(archer2 != null) {
+                utility -= getDistanceBetweenUnits(footman2, archer2);
+            }
+            utility += footman2.health;
+        }
+
+        // Edits utility based on archer1's ability to attack and health
+        if(archer1 != null) {
+            if(archer1.canAttack(footman1) || (footman2 != null && archer1.canAttack(footman2))) {
+                utility += 500;
+            }
+            utility -= archer1.health;
+        } else {
+            utility += 1000;
+        }
+
+        // Edits utility based on archer1's ability to attack and health
+        if(archer2 != null) {
+            if(archer2.canAttack(footman2) || (footman1 != null && archer2.canAttack(footman1))) {
+                utility += 500;
+            }
+            utility -= archer2.health;
+        } else {
+            utility += 1000;
+        }
+
+        return utility;
+    }
+
+    // Computes the distance between two units keeping in mind that they cannot move horizontally
+    public double getDistanceBetweenUnits(BetterUnit unit1, BetterUnit unit2) {
+        double xDist = Math.abs(unit1.x - unit2.x);
+        double yDist = Math.abs(unit1.y - unit2.y);
+        return xDist + yDist;
     }
 
     /**

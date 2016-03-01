@@ -83,7 +83,7 @@ public class MinimaxAlphaBeta extends Agent {
             return node;
         }
 
-        //Maximizing
+        // Maximizing
         if (node.state.isMyTurn) {
             value = Double.NEGATIVE_INFINITY;
             // Reverse the ordered list of children for maximizing so the list goes from largest to smallest
@@ -96,7 +96,6 @@ public class MinimaxAlphaBeta extends Agent {
                     value = childsBestNode.state.getUtility();
                     nodeToReturn = childsBestNode;
                 }
-                //value = Math.max(value, alphaBetaSearch(child, depth - 1, alpha, beta).state.getUtility());
                 alpha = Math.max(value, alpha);
                 //Prune Beta
                 if (beta <= alpha) {
@@ -104,13 +103,12 @@ public class MinimaxAlphaBeta extends Agent {
                 }
             }
             return nodeToReturn;
-            //Minimizing
+            // Minimizing
         } else {
             value = Double.POSITIVE_INFINITY;
             List<GameStateChild> children = orderChildrenWithHeuristics(node.state.getChildren());
             nodeToReturn = children.get(0);
             for (GameStateChild child : children) {
-                //value = Math.min(value, alphaBetaSearch(child, depth - 1, alpha, beta));
                 GameStateChild childsBestNode = alphaBetaSearch(child, depth - 1, alpha, beta);
                 if(childsBestNode.state.getUtility() < value) {
                     value = childsBestNode.state.getUtility();
