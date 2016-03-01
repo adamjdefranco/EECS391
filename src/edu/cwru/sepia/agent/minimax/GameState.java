@@ -62,9 +62,9 @@ public class GameState {
                             //Both units are alive
                             this.health > 0 && unit.health > 0 &&
                             //Either they are aligned on the x or y axis and in range
-                            ((Math.abs(this.x - unit.x) < this.range && this.y == unit.y && !isObstructedX(this.y, this.x, unit.x))
+                            ((Math.abs(this.x - unit.x) <= this.range && this.y == unit.y && !isObstructedX(this.y, this.x, unit.x))
                                     ||
-                                    (Math.abs(this.y - unit.y) < this.range && this.x == unit.x && !isObstructedY(this.x, this.y, unit.y)));
+                                    (Math.abs(this.y - unit.y) <= this.range && this.x == unit.x && !isObstructedY(this.x, this.y, unit.y)));
         }
 
         public void doAttack(BetterUnit unit) {
@@ -284,7 +284,7 @@ public class GameState {
         for (Integer id : enemyUnitIds) {
             BetterUnit enemy = allUnits.get(id);
             if (unit.canAttack(enemy)) {
-                TargetedAction attackAction = new TargetedAction(unit.id, ActionType.PRIMITIVEATTACK, id);
+                TargetedAction attackAction = new TargetedAction(unit.id, ActionType.PRIMITIVEATTACK, enemy.id);
                 actions.add(attackAction);
             }
         }
@@ -343,9 +343,8 @@ public class GameState {
     private boolean isObstructedX(int baseY, int pos, int goal) {
         int min = Math.min(pos, goal);
         int max = Math.min(pos, goal);
-        for (int i = min; i <= max; i++) {
-            String str = i + " " + baseY;
-            if (takenResourceLocations.contains(str)) {
+        for (int i = min; i < max; i++) {
+            if(resourceAtLocation(i,baseY)){
                 return true;
             }
         }
@@ -355,7 +354,7 @@ public class GameState {
     private boolean isObstructedY(int baseX, int pos, int goal) {
         int min = Math.min(pos, goal);
         int max = Math.max(pos, goal);
-        for (int i = min; i <= max; i++) {
+        for (int i = min; i < max; i++) {
             if (resourceAtLocation(baseX, i)) {
                 return true;
             }

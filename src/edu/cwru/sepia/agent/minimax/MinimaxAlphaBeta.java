@@ -74,6 +74,7 @@ public class MinimaxAlphaBeta extends Agent {
      * @return The best child of this node with updated values
      */
     public GameStateChild alphaBetaSearch(GameStateChild node, int depth, double alpha, double beta) {
+        node.state.computeUnitLists(playernum);
         if (depth == 0 || node.state.allMyUnitsDead() || node.state.allEnemyUnitsDead()) {
             return node;
         }
