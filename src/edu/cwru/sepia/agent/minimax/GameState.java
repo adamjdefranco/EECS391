@@ -37,6 +37,8 @@ public class GameState {
     private int myPlayerID = -1;
     private List<Integer> myUnitIds;
     private List<Integer> enemyUnitIds;
+    MapLocation aStarLocation1;
+    MapLocation aStarLocation2;
 
     public class BetterUnit {
         public final int id;
@@ -71,6 +73,10 @@ public class GameState {
             this.damage = 0;
             this.maxHealth = 0;
             this.healthPercent = 0;
+        }
+
+        public MapLocation getMapLocation() {
+            return new MapLocation(this.x, this.y, null);
         }
 
         public boolean canAttack(BetterUnit unit) {
@@ -295,6 +301,15 @@ public class GameState {
         return children;
     }
 
+    public void getAStarPaths() {
+        if(archer1.isAlive() && footman1.isAlive()) {
+            aStarLocation1 = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
+        }
+        if(archer1.isAlive() && footman2.isAlive()) {
+            aStarLocation2 = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
+        }
+    }
+
     private List<Action> validActionsForUnit(BetterUnit unit) {
         List<Action> actions = new ArrayList<>();
 
@@ -373,6 +388,8 @@ public class GameState {
             archer1 = new BetterUnit();
             archer2 = new BetterUnit();
         }
+
+        getAStarPaths();
     }
 
     private boolean isObstructedX(int baseY, int pos, int goal) {
@@ -442,6 +459,153 @@ public class GameState {
             }
         }
         return true;
+    }
+
+    class MapLocation {
+        public int x, y;
+        public MapLocation previous;
+        public float cost;
+        public float heuristic;
+
+        public MapLocation(int x, int y, MapLocation cameFrom, float cost) {
+            this.x = x;
+            this.y = y;
+            this.previous = cameFrom;
+            this.cost = cost;
+        }
+
+        public void setHeuristic(MapLocation goalState) {
+            this.heuristic = chebyshevDistance(this, goalState);
+        }
+
+        // Convenience constructor used in getNeighbors for adding 1 to the cost
+        public MapLocation(int x, int y, MapLocation cameFrom){
+            this(x,y,cameFrom,cameFrom.cost+1);
+        }
+
+        // Checks if two MapLocations are the same
+        public boolean equals(Object loc){
+            if(loc instanceof MapLocation){
+                MapLocation ml = (MapLocation) loc;
+                return x == ml.x && y == ml.y;
+            } else {
+                return false;
+            }
+        }
+
+        // Writes out the x and y coordinates, used for debugging and hashcode
+        public String toString(){
+            return "("+x+","+y+")";
+        }
+
+        // Returns a list of all of the neighbor map locations of this's maplocation
+        public List<MapLocation> getNeighbours(int xExtent, int yExtent) {
+            List<MapLocation> mapLocs = new ArrayList<>();
+            if(x-1>=0){
+                //WEST
+                mapLocs.add(new MapLocation(x-1,y,this));
+                if(y-1 >= 0){
+                    //NORTHWEST
+                    mapLocs.add(new MapLocation(x-1,y-1,this));
+                }
+                if(y+1 <= yExtent){
+                    //NORTHEAST
+                    mapLocs.add(new MapLocation(x-1,y+1,this));
+                }
+            }
+            if(y-1 >= 0){
+                //NORTH
+                mapLocs.add(new MapLocation(x,y-1,this));
+            }
+            if(y+1 <= yExtent){
+                //SOUTH
+                mapLocs.add(new MapLocation(x,y+1,this));
+            }
+            if(x+1 <= xExtent){
+                //EAST
+                mapLocs.add(new MapLocation(x+1,y,this));
+                if(y-1 >= 0){
+                    //NORTHEAST
+                    mapLocs.add(new MapLocation(x+1,y-1,this));
+                }
+                if(y+1 <= yExtent){
+                    //SOUTHEAST
+                    mapLocs.add(new MapLocation(x+1,y+1,this));
+                }
+            }
+            return mapLocs;
+        }
+
+        // Function for calculating the Chebyshev Heuristic
+        public float chebyshevDistance(MapLocation a, MapLocation b) {
+            return Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+        }
+
+        @Override
+        public int hashCode() {
+            return toString().hashCode();
+        }
+    }
+
+    private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent) {
+        // Priority queue for the open list of nodes
+        PriorityQueue<MapLocation> queue = new PriorityQueue<>((o1, o2) -> {
+            return Float.compare((o1.cost + o1.heuristic),(o2.cost + o2.heuristic));
+        });
+        // Set for the closed list of nodes
+        Set<MapLocation> closedList = new HashSet<>();
+        start.setHeuristic(goal);
+        // Adds the initial node to the queue
+        queue.add(start);
+        MapLocation currentLoc;
+        // Runs until you reach the goal node
+        do {
+            // CurrentLoc becomes the first location in the open list
+            currentLoc = queue.poll();
+            // Prints if there is no path available and exits the program if so
+            if(currentLoc == null) {
+                System.out.println("No available path.");
+                System.exit(0);
+            }
+            System.out.println("Looking at location " + currentLoc.toString());
+            // Adds the current MapLocation to the closed list
+            closedList.add(currentLoc);
+            // Instantiates a list of the neighbors of the current location
+            List<MapLocation> neighbours = currentLoc.getNeighbours(xExtent, yExtent);
+            // Loops through all of the neighbors of the MapLocation m
+            for(MapLocation m : neighbours){
+                if(archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))){
+                    continue;
+                }
+                // Won't choose to move to location m if there is a resource in the way
+                if(resourceAtLocation(m.x, m.y)){
+                    System.out.println("Can't go to "+m+" because it is resource-blocked.");
+                    continue;
+                }
+                // Won't choose to move to location m if it is already in the closed list
+                if(closedList.contains(m)){
+                    continue;
+                }
+                // Won't choose to move to location m if it is already in the open list
+                if(queue.contains(m)){
+                    continue;
+                }
+                // Compute H(x) for the location
+                m.setHeuristic(goal);
+                System.out.println("Adding "+m+" to queue");
+                queue.add(m);
+            }
+        } while (!currentLoc.equals(goal));
+        // Stack for the path for the footman to travel
+        Stack<MapLocation> path = new Stack<>();
+
+        // Pushes the path onto the stack backwards so when you pop it off later it will be in order
+        while(!currentLoc.equals(start)){
+            path.push(currentLoc);
+            System.out.println("Go to location " + currentLoc.toString());
+            currentLoc = currentLoc.previous;
+        }
+        return path;
     }
 
 }
