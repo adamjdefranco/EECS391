@@ -40,6 +40,8 @@ public class GameState {
     public Stack<MapLocation> aStarPath1;
     public Stack<MapLocation> aStarPath2;
     public GameState parent = null;
+
+    // Class for better defining the characteristics of a player or enemy in the game (includes convenience methods)
     public class BetterUnit {
         public final int id;
         public int x;
@@ -51,6 +53,7 @@ public class GameState {
         public int maxHealth;
         public int healthPercent;
 
+        // Constructor for a given unit
         public BetterUnit(Unit.UnitView unit) {
             this.id = unit.getID();
             this.x = unit.getXPosition();
@@ -63,6 +66,7 @@ public class GameState {
             this.healthPercent = ((int) (((float) health) / (float) maxHealth));
         }
 
+        // Default Constructor
         public BetterUnit() {
             this.id = -1;
             this.x = -1;
@@ -75,27 +79,31 @@ public class GameState {
             this.healthPercent = 0;
         }
 
+        // Gives the (x,y) coordinates of the unit as a MapLocation object
         public MapLocation getMapLocation() {
             return new MapLocation(this.x, this.y, null, 0);
         }
 
+        // Determines if this unit can attach another unit
         public boolean canAttack(BetterUnit unit) {
             return //Both units are alive
                     this.health > 0 && unit.health > 0 &&
                             //Not on the same team
                             unit.player != this.player &&
-                            //Either they are aligned on the x or y axis and in range
+                            //The other unit is within a square defined by the range
                             ((Math.abs(this.x - unit.x) <= this.range)
                                     &&
                                     (Math.abs(this.y - unit.y) <= this.range));
         }
 
+        // This unit attacks the other unit
         public void doAttack(BetterUnit unit) {
             if (this.isAlive()) {
                 unit.health = Math.min(0, unit.health - this.damage);
             }
         }
 
+        // Moves the unity to the given location
         public void move(int dx, int dy) {
             if (this.isAlive()) {
                 x += dx;
@@ -103,12 +111,14 @@ public class GameState {
             }
         }
 
+        // Returns whether or not a unit is active (alive)
         public boolean isAlive() {
             return this.health > 0;
         }
     }
 
     //Boolean for tracking if it is my turn or the enemy agents. Is set externally in the a-b search
+    //and swapped over when children are created
     public boolean isMyTurn = true;
 
     /**
@@ -133,9 +143,12 @@ public class GameState {
      * @param state Current state of the episode
      */
     public GameState(State.StateView state) {
+        // Uses Java 8's streaming API in order to construct BetterUnits from UnitView, and the nplaces them in a hashmap with their IDs as a key
         allUnits = state.getAllUnits().stream().map(BetterUnit::new).collect(Collectors.toMap((Function<BetterUnit, Integer>) betterUnit -> betterUnit.id, (Function<BetterUnit, BetterUnit>) betterUnit -> betterUnit));
+        // Gets the width and height of the gameboard
         mapX = state.getXExtent();
         mapY = state.getYExtent();
+        // Takes all of the resource nodes, puts a strinafied version of their coordinants into a set
         state.getAllResourceNodes().stream().forEach(resourceView -> {
             String loc = resourceView.getXPosition() + " " + resourceView.getYPosition();
             takenResourceLocations.add(loc);
@@ -164,6 +177,7 @@ public class GameState {
     public double getUtility() {
         double utility = 0.0;
 
+        // Increased the utility if the footman is alive and there is a path given by a star and the footman is on the a star path
         if(footman1.isAlive() && aStarPath1 != null && aStarPath1.contains(footman1.getMapLocation())){
             utility += 500;
         }
@@ -171,8 +185,8 @@ public class GameState {
             utility += 500;
         }
 
+        // Edits utility based on footman1's ability to attack, health, and distance from archer1
         if (footman1.isAlive()) {
-            // Edits utility based on footman1's ability to attack, health, and distance from archer1
             if ((archer1.isAlive() && footman1.canAttack(archer1)) || (archer2.isAlive() && footman1.canAttack(archer2))) {
                 utility += 1000;
             }
@@ -308,6 +322,7 @@ public class GameState {
         return children;
     }
 
+    // Returns the movement or attack actions possible for the given betterunit
     private List<Action> validActionsForUnit(BetterUnit unit) {
         List<Action> actions = new ArrayList<>();
 
@@ -330,6 +345,7 @@ public class GameState {
         return actions;
     }
 
+    // Checks to make sure the unit can move to a given location with a given direction
     private boolean validMoveInDirection(int x, int y, Direction dir) {
         int newX = x + dir.xComponent();
         int newY = y + dir.yComponent();
@@ -356,12 +372,15 @@ public class GameState {
         return true;
     }
 
+    // Returns true only if the direction is up, down, left, or right since we cannot move diagonally
     private static boolean isValidMoveDirection(Direction d) {
         return d.equals(Direction.NORTH) || d.equals(Direction.SOUTH) || d.equals(Direction.EAST) || d.equals(Direction.WEST);
     }
 
+    // Populates the footman1, footman2, archer1, and archer2 BetterUnits
     public void computeUnitLists(int myPlayerID) {
         this.myPlayerID = myPlayerID;
+        // Gets IDs of all units on the board
         myUnitIds = this.view.getUnitIds(myPlayerID);
         if (myUnitIds.size() > 0) {
             footman1 = allUnits.get(myUnitIds.get(0));
@@ -388,6 +407,7 @@ public class GameState {
         }
     }
 
+    // Will compute the a star path for a footman to an archer
     public void computeAStarPaths(){
         if(footman1.isAlive()){
             Double a1Dist = Double.MAX_VALUE;
@@ -398,6 +418,7 @@ public class GameState {
             if(archer2.isAlive()){
                 a2Dist = getDistanceBetweenUnits(footman1, archer2);
             }
+            // Calculates the a star with the goal being the closer of the two archers
             if(a1Dist < a2Dist){
                 aStarPath1 = AstarSearch(footman1.getMapLocation(), archer1.getMapLocation(), mapX, mapY);
             } else {
@@ -413,6 +434,7 @@ public class GameState {
             if(archer2.isAlive()){
                 a2Dist = getDistanceBetweenUnits(footman2, archer2);
             }
+            // Calculates the a star with the goal being the closer of the two archers
             if(a1Dist < a2Dist){
                 aStarPath2 = AstarSearch(footman2.getMapLocation(), archer1.getMapLocation(), mapX, mapY);
             } else {
@@ -421,23 +443,13 @@ public class GameState {
         }
     }
 
-    public boolean haveEnemiesMoved(List<BetterUnit> enemies){
-        for(BetterUnit enemy : enemies){
-            BetterUnit thisEnemy = allUnits.get(enemy.id);
-            if(thisEnemy.isAlive()) {
-                if (thisEnemy.x != enemy.x || thisEnemy.y != enemy.y) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
+    // Returns what resource is at the given x, y coordinants
     private boolean resourceAtLocation(int x, int y) {
         String str = x + " " + y;
         return takenResourceLocations.contains(str);
     }
 
+    // Creates the GameStateChild nodes based on the current state. Populates the child with possible actions
     private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
         GameState g = new GameState(state);
         g.parent = this;
@@ -449,6 +461,7 @@ public class GameState {
         GameStateChild newChild = new GameStateChild(unitActions, g);
         unitActions.forEach((integer, action) -> {
             BetterUnit unit = newChild.state.allUnits.get(integer);
+            // Populates the child with possible actions
             if (action.getType() == ActionType.PRIMITIVEMOVE) {
                 DirectedAction actualAction = (DirectedAction) action;
                 unit.move(actualAction.getDirection().xComponent(), actualAction.getDirection().yComponent());
@@ -461,15 +474,10 @@ public class GameState {
                 //Do nothing - this state should never be seen.
             }
         });
-        //Check and see if the a* needs to be recomputed for things
-        List<BetterUnit> currentEnemies = enemyUnitIds.stream().map(integer -> allUnits.get(integer)).collect(Collectors.toList());
-//        if(g.haveEnemiesMoved(currentEnemies)){
-//            //Replan a* paths here.
-//            g.computeAStarPaths();
-//        }
         return newChild;
     }
 
+    // Returns true only if all footmen are dead
     public boolean allMyUnitsDead() {
         for (Integer id : myUnitIds) {
             BetterUnit unit = allUnits.get(id);
@@ -480,6 +488,7 @@ public class GameState {
         return true;
     }
 
+    // Returns true only if all archers are dead
     public boolean allEnemyUnitsDead() {
         for (Integer id : enemyUnitIds) {
             BetterUnit unit = allUnits.get(id);
@@ -490,6 +499,7 @@ public class GameState {
         return true;
     }
 
+    // Class for storing locations in the map, used by a star
     class MapLocation {
         public int x, y;
         public MapLocation previous;
@@ -560,6 +570,7 @@ public class GameState {
         }
     }
 
+    // Computes a star from the given starting map location to the given goal location
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent) {
         System.out.println("Doing an A* search from "+start+" to "+goal);
         // Priority queue for the open list of nodes
@@ -580,9 +591,6 @@ public class GameState {
             List<MapLocation> neighbours = currentLoc.getNeighbours(xExtent, yExtent);
             // Loops through all of the neighbors of the MapLocation m
             for (MapLocation m : neighbours) {
-//                if (archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))) {
-//                    continue;
-//                }
                 // Won't choose to move to location m if there is a resource in the way
                 if (resourceAtLocation(m.x, m.y)) {
                     continue;

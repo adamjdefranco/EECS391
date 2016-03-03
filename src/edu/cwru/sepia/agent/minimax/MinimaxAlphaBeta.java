@@ -79,7 +79,8 @@ public class MinimaxAlphaBeta extends Agent {
         if (depth == 0 || node.state.allMyUnitsDead() || node.state.allEnemyUnitsDead()) {
             return node;
         }
-        if(node.state.aStarPath1 == null && node.state.aStarPath2 == null){
+        // A star is only computed once at the start of a new turn
+        if(node.state.aStarPath1 == null && node.state.aStarPath2 == null) {
             node.state.computeAStarPaths();
         }
         double value;
