@@ -39,7 +39,7 @@ public class GameState {
     private List<Integer> enemyUnitIds;
     public Stack<MapLocation> aStarPath1;
     public Stack<MapLocation> aStarPath2;
-
+    public GameState parent = null;
     public class BetterUnit {
         public final int id;
         public int x;
@@ -308,36 +308,6 @@ public class GameState {
         return children;
     }
 
-    public MapLocation getAStarPathForFootman1() {
-        if (archer1.isAlive()) {
-            Stack<MapLocation> locs = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY);
-            if(locs.isEmpty()){
-                return null;
-            } else {
-                return locs.pop();
-            }
-        } else if (archer2.isAlive()) {
-            Stack<MapLocation> locs = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer2.x, archer2.y, null, 0), mapX, mapY);
-            if(locs.isEmpty()){
-                return null;
-            } else {
-                return locs.pop();
-            }
-        } else {
-            return null;
-        }
-    }
-
-    public MapLocation getAStarPathForFootman2() {
-        if (archer1.isAlive()) {
-            return AstarSearch(new MapLocation(footman2.x, footman2.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
-        } else if (archer2.isAlive()) {
-            return AstarSearch(new MapLocation(footman2.x, footman2.y, null, 0), new MapLocation(archer2.x, archer2.y, null, 0), mapX, mapY).pop();
-        } else {
-            return null;
-        }
-    }
-
     private List<Action> validActionsForUnit(BetterUnit unit) {
         List<Action> actions = new ArrayList<>();
 
@@ -470,6 +440,7 @@ public class GameState {
 
     private GameStateChild childFromStateWithAction(State.StateView state, Map<Integer, Action> unitActions) {
         GameState g = new GameState(state);
+        g.parent = this;
         g.computeUnitLists(this.myPlayerID);
         g.isMyTurn = !isMyTurn;
         //TODO make these more efficient somehow?
@@ -590,6 +561,7 @@ public class GameState {
     }
 
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent) {
+        System.out.println("Doing an A* search from "+start+" to "+goal);
         // Priority queue for the open list of nodes
         PriorityQueue<MapLocation> queue = new PriorityQueue<>((o1, o2) -> {
             return Float.compare((o1.cost + o1.heuristic), (o2.cost + o2.heuristic));
@@ -599,25 +571,18 @@ public class GameState {
         start.setHeuristic(goal);
         // Adds the initial node to the queue
         queue.add(start);
-        MapLocation currentLoc;
+        MapLocation currentLoc = queue.poll();
         // Runs until you reach the goal node
-        do {
-            // CurrentLoc becomes the first location in the open list
-            currentLoc = queue.poll();
-            // Prints if there is no path available and exits the program if so
-            if (currentLoc == null) {
-                System.out.println("No available path from "+start.toString()+" to "+goal.toString());
-                return new Stack<>();
-            }
+        while(!currentLoc.equals(goal)){
             // Adds the current MapLocation to the closed list
             closedList.add(currentLoc);
             // Instantiates a list of the neighbors of the current location
             List<MapLocation> neighbours = currentLoc.getNeighbours(xExtent, yExtent);
             // Loops through all of the neighbors of the MapLocation m
             for (MapLocation m : neighbours) {
-                if (!m.equals(goal) && archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))) {
-                    continue;
-                }
+//                if (archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))) {
+//                    continue;
+//                }
                 // Won't choose to move to location m if there is a resource in the way
                 if (resourceAtLocation(m.x, m.y)) {
                     continue;
@@ -634,7 +599,15 @@ public class GameState {
                 m.setHeuristic(goal);
                 queue.add(m);
             }
-        } while (!currentLoc.equals(goal));
+
+            //Get the next location from the list.
+            currentLoc = queue.poll();
+            // Prints if there is no path available and exits the program if so
+            if (currentLoc == null) {
+                System.out.println("No available path from "+start.toString()+" to "+goal.toString());
+                return new Stack<>();
+            }
+        }
         // Stack for the path for the footman to travel
         Stack<MapLocation> path = new Stack<>();
 

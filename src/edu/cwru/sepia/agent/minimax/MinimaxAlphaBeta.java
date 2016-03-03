@@ -35,6 +35,7 @@ public class MinimaxAlphaBeta extends Agent {
 
     @Override
     public Map<Integer, Action> middleStep(State.StateView newstate, History.HistoryView statehistory) {
+        System.out.println("Starting a new turn: "+newstate.getTurnNumber());
         GameStateChild bestChild = alphaBetaSearch(new GameStateChild(newstate),
                 numPlys,
                 Double.NEGATIVE_INFINITY,
