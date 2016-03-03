@@ -37,8 +37,8 @@ public class GameState {
     private int myPlayerID = -1;
     private List<Integer> myUnitIds;
     private List<Integer> enemyUnitIds;
-    MapLocation aStarLocation1;
-    MapLocation aStarLocation2;
+    public Stack<MapLocation> aStarPath1;
+    public Stack<MapLocation> aStarPath2;
 
     public class BetterUnit {
         public final int id;
@@ -60,10 +60,10 @@ public class GameState {
             this.player = unit.getTemplateView().getPlayer();
             this.damage = unit.getTemplateView().getBasicAttack();
             this.maxHealth = unit.getTemplateView().getBaseHealth();
-            this.healthPercent = ((int)(((float)health)/(float)maxHealth));
+            this.healthPercent = ((int) (((float) health) / (float) maxHealth));
         }
 
-        public BetterUnit(){
+        public BetterUnit() {
             this.id = -1;
             this.x = -1;
             this.y = -1;
@@ -76,14 +76,14 @@ public class GameState {
         }
 
         public MapLocation getMapLocation() {
-            return new MapLocation(this.x, this.y, null);
+            return new MapLocation(this.x, this.y, null, 0);
         }
 
         public boolean canAttack(BetterUnit unit) {
             return //Both units are alive
                     this.health > 0 && unit.health > 0 &&
-                    //Not on the same team
-                    unit.player != this.player &&
+                            //Not on the same team
+                            unit.player != this.player &&
                             //Either they are aligned on the x or y axis and in range
                             ((Math.abs(this.x - unit.x) <= this.range)
                                     &&
@@ -91,13 +91,13 @@ public class GameState {
         }
 
         public void doAttack(BetterUnit unit) {
-            if(this.isAlive()) {
+            if (this.isAlive()) {
                 unit.health = Math.min(0, unit.health - this.damage);
             }
         }
 
         public void move(int dx, int dy) {
-            if(this.isAlive()) {
+            if (this.isAlive()) {
                 x += dx;
                 y += dy;
             }
@@ -164,10 +164,17 @@ public class GameState {
     public double getUtility() {
         double utility = 0.0;
 
-        if(footman1.isAlive()) {
+        if(footman1.isAlive() && aStarPath1 != null && aStarPath1.contains(footman1.getMapLocation())){
+            utility += 500;
+        }
+        if(footman2.isAlive() && aStarPath2 != null && aStarPath2.contains(footman2.getMapLocation())){
+            utility += 500;
+        }
+
+        if (footman1.isAlive()) {
             // Edits utility based on footman1's ability to attack, health, and distance from archer1
-            if((archer1.isAlive() && footman1.canAttack(archer1)) || (archer2.isAlive() && footman1.canAttack(archer2))) {
-                utility += 500;
+            if ((archer1.isAlive() && footman1.canAttack(archer1)) || (archer2.isAlive() && footman1.canAttack(archer2))) {
+                utility += 1000;
             }
             if (archer1.isAlive()) {
                 utility -= getDistanceBetweenUnits(footman1, archer1);
@@ -178,37 +185,37 @@ public class GameState {
             utility += footman1.healthPercent;
         }
         // Edits utility based on footman2's ability to attack, health, and distance from archer2
-        if(footman2.isAlive()) {
-            if(footman2.canAttack(archer1) || (archer2.isAlive() && footman2.canAttack(archer2))) {
-                utility += 500;
+        if (footman2.isAlive()) {
+            if (footman2.canAttack(archer1) || (archer2.isAlive() && footman2.canAttack(archer2))) {
+                utility += 1000;
             }
-            if(archer1.isAlive()) {
+            if (archer1.isAlive()) {
                 utility -= getDistanceBetweenUnits(footman2, archer1);
             }
-            if(archer2.isAlive()) {
+            if (archer2.isAlive()) {
                 utility -= getDistanceBetweenUnits(footman2, archer2);
             }
             utility += footman2.healthPercent;
         }
 
         // Edits utility based on archer1's ability to attack and health
-        if(archer1.isAlive()) {
-            if((footman1.isAlive() && archer1.canAttack(footman1)) || (footman2.isAlive() && archer1.canAttack(footman2))) {
+        if (archer1.isAlive()) {
+            if ((footman1.isAlive() && archer1.canAttack(footman1)) || (footman2.isAlive() && archer1.canAttack(footman2))) {
                 utility -= 500;
             }
-            utility += ((float)(archer1.maxHealth - archer1.health)/archer1.maxHealth)*100;
+            utility += ((float) (archer1.maxHealth - archer1.health) / archer1.maxHealth) * 100;
         } else {
-            utility += 1000;
+            utility += 10000;
         }
 
         // Edits utility based on archer1's ability to attack and health
-        if(archer2.isAlive()) {
-            if((footman2.isAlive() && archer2.canAttack(footman2)) || (footman1.isAlive() && archer2.canAttack(footman1))) {
+        if (archer2.isAlive()) {
+            if ((footman2.isAlive() && archer2.canAttack(footman2)) || (footman1.isAlive() && archer2.canAttack(footman1))) {
                 utility -= 500;
             }
-            utility += ((float)(archer2.maxHealth - archer2.health)/archer2.maxHealth)*100;
+            utility += ((float) (archer2.maxHealth - archer2.health) / archer2.maxHealth) * 100;
         } else {
-            utility += 1000;
+            utility += 10000;
         }
 
         return utility;
@@ -301,12 +308,33 @@ public class GameState {
         return children;
     }
 
-    public void getAStarPaths() {
-        if(archer1.isAlive() && footman1.isAlive()) {
-            aStarLocation1 = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
+    public MapLocation getAStarPathForFootman1() {
+        if (archer1.isAlive()) {
+            Stack<MapLocation> locs = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY);
+            if(locs.isEmpty()){
+                return null;
+            } else {
+                return locs.pop();
+            }
+        } else if (archer2.isAlive()) {
+            Stack<MapLocation> locs = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer2.x, archer2.y, null, 0), mapX, mapY);
+            if(locs.isEmpty()){
+                return null;
+            } else {
+                return locs.pop();
+            }
+        } else {
+            return null;
         }
-        if(archer1.isAlive() && footman2.isAlive()) {
-            aStarLocation2 = AstarSearch(new MapLocation(footman1.x, footman1.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
+    }
+
+    public MapLocation getAStarPathForFootman2() {
+        if (archer1.isAlive()) {
+            return AstarSearch(new MapLocation(footman2.x, footman2.y, null, 0), new MapLocation(archer1.x, archer1.y, null, 0), mapX, mapY).pop();
+        } else if (archer2.isAlive()) {
+            return AstarSearch(new MapLocation(footman2.x, footman2.y, null, 0), new MapLocation(archer2.x, archer2.y, null, 0), mapX, mapY).pop();
+        } else {
+            return null;
         }
     }
 
@@ -388,27 +416,48 @@ public class GameState {
             archer1 = new BetterUnit();
             archer2 = new BetterUnit();
         }
-
-        getAStarPaths();
     }
 
-    private boolean isObstructedX(int baseY, int pos, int goal) {
-        int min = Math.min(pos, goal);
-        int max = Math.min(pos, goal);
-        for (int i = min; i < max; i++) {
-            if(resourceAtLocation(i,baseY)){
-                return true;
+    public void computeAStarPaths(){
+        if(footman1.isAlive()){
+            Double a1Dist = Double.MAX_VALUE;
+            if(archer1.isAlive()) {
+                a1Dist = getDistanceBetweenUnits(footman1, archer1);
+            }
+            Double a2Dist = Double.MAX_VALUE;
+            if(archer2.isAlive()){
+                a2Dist = getDistanceBetweenUnits(footman1, archer2);
+            }
+            if(a1Dist < a2Dist){
+                aStarPath1 = AstarSearch(footman1.getMapLocation(), archer1.getMapLocation(), mapX, mapY);
+            } else {
+                aStarPath1 = AstarSearch(footman1.getMapLocation(), archer2.getMapLocation(), mapX, mapY);
             }
         }
-        return false;
+        if(footman2.isAlive()){
+            Double a1Dist = Double.MAX_VALUE;
+            if(archer1.isAlive()) {
+                a1Dist = getDistanceBetweenUnits(footman2, archer1);
+            }
+            Double a2Dist = Double.MAX_VALUE;
+            if(archer2.isAlive()){
+                a2Dist = getDistanceBetweenUnits(footman2, archer2);
+            }
+            if(a1Dist < a2Dist){
+                aStarPath2 = AstarSearch(footman2.getMapLocation(), archer1.getMapLocation(), mapX, mapY);
+            } else {
+                aStarPath2 = AstarSearch(footman2.getMapLocation(), archer2.getMapLocation(), mapX, mapY);
+            }
+        }
     }
 
-    private boolean isObstructedY(int baseX, int pos, int goal) {
-        int min = Math.min(pos, goal);
-        int max = Math.max(pos, goal);
-        for (int i = min; i < max; i++) {
-            if (resourceAtLocation(baseX, i)) {
-                return true;
+    public boolean haveEnemiesMoved(List<BetterUnit> enemies){
+        for(BetterUnit enemy : enemies){
+            BetterUnit thisEnemy = allUnits.get(enemy.id);
+            if(thisEnemy.isAlive()) {
+                if (thisEnemy.x != enemy.x || thisEnemy.y != enemy.y) {
+                    return true;
+                }
             }
         }
         return false;
@@ -423,6 +472,9 @@ public class GameState {
         GameState g = new GameState(state);
         g.computeUnitLists(this.myPlayerID);
         g.isMyTurn = !isMyTurn;
+        //TODO make these more efficient somehow?
+        g.aStarPath1 = aStarPath1;
+        g.aStarPath2 = aStarPath2;
         GameStateChild newChild = new GameStateChild(unitActions, g);
         unitActions.forEach((integer, action) -> {
             BetterUnit unit = newChild.state.allUnits.get(integer);
@@ -438,6 +490,12 @@ public class GameState {
                 //Do nothing - this state should never be seen.
             }
         });
+        //Check and see if the a* needs to be recomputed for things
+        List<BetterUnit> currentEnemies = enemyUnitIds.stream().map(integer -> allUnits.get(integer)).collect(Collectors.toList());
+//        if(g.haveEnemiesMoved(currentEnemies)){
+//            //Replan a* paths here.
+//            g.computeAStarPaths();
+//        }
         return newChild;
     }
 
@@ -479,13 +537,13 @@ public class GameState {
         }
 
         // Convenience constructor used in getNeighbors for adding 1 to the cost
-        public MapLocation(int x, int y, MapLocation cameFrom){
-            this(x,y,cameFrom,cameFrom.cost+1);
+        public MapLocation(int x, int y, MapLocation cameFrom) {
+            this(x, y, cameFrom, cameFrom.cost + 1);
         }
 
         // Checks if two MapLocations are the same
-        public boolean equals(Object loc){
-            if(loc instanceof MapLocation){
+        public boolean equals(Object loc) {
+            if (loc instanceof MapLocation) {
                 MapLocation ml = (MapLocation) loc;
                 return x == ml.x && y == ml.y;
             } else {
@@ -494,44 +552,28 @@ public class GameState {
         }
 
         // Writes out the x and y coordinates, used for debugging and hashcode
-        public String toString(){
-            return "("+x+","+y+")";
+        public String toString() {
+            return "(" + x + "," + y + ")";
         }
 
         // Returns a list of all of the neighbor map locations of this's maplocation
         public List<MapLocation> getNeighbours(int xExtent, int yExtent) {
             List<MapLocation> mapLocs = new ArrayList<>();
-            if(x-1>=0){
+            if (x - 1 >= 0) {
                 //WEST
-                mapLocs.add(new MapLocation(x-1,y,this));
-                if(y-1 >= 0){
-                    //NORTHWEST
-                    mapLocs.add(new MapLocation(x-1,y-1,this));
-                }
-                if(y+1 <= yExtent){
-                    //NORTHEAST
-                    mapLocs.add(new MapLocation(x-1,y+1,this));
-                }
+                mapLocs.add(new MapLocation(x - 1, y, this));
             }
-            if(y-1 >= 0){
+            if (y - 1 >= 0) {
                 //NORTH
-                mapLocs.add(new MapLocation(x,y-1,this));
+                mapLocs.add(new MapLocation(x, y - 1, this));
             }
-            if(y+1 <= yExtent){
+            if (y + 1 <= yExtent) {
                 //SOUTH
-                mapLocs.add(new MapLocation(x,y+1,this));
+                mapLocs.add(new MapLocation(x, y + 1, this));
             }
-            if(x+1 <= xExtent){
+            if (x + 1 <= xExtent) {
                 //EAST
-                mapLocs.add(new MapLocation(x+1,y,this));
-                if(y-1 >= 0){
-                    //NORTHEAST
-                    mapLocs.add(new MapLocation(x+1,y-1,this));
-                }
-                if(y+1 <= yExtent){
-                    //SOUTHEAST
-                    mapLocs.add(new MapLocation(x+1,y+1,this));
-                }
+                mapLocs.add(new MapLocation(x + 1, y, this));
             }
             return mapLocs;
         }
@@ -550,7 +592,7 @@ public class GameState {
     private Stack<MapLocation> AstarSearch(MapLocation start, MapLocation goal, int xExtent, int yExtent) {
         // Priority queue for the open list of nodes
         PriorityQueue<MapLocation> queue = new PriorityQueue<>((o1, o2) -> {
-            return Float.compare((o1.cost + o1.heuristic),(o2.cost + o2.heuristic));
+            return Float.compare((o1.cost + o1.heuristic), (o2.cost + o2.heuristic));
         });
         // Set for the closed list of nodes
         Set<MapLocation> closedList = new HashSet<>();
@@ -563,36 +605,33 @@ public class GameState {
             // CurrentLoc becomes the first location in the open list
             currentLoc = queue.poll();
             // Prints if there is no path available and exits the program if so
-            if(currentLoc == null) {
-                System.out.println("No available path.");
-                System.exit(0);
+            if (currentLoc == null) {
+                System.out.println("No available path from "+start.toString()+" to "+goal.toString());
+                return new Stack<>();
             }
-            System.out.println("Looking at location " + currentLoc.toString());
             // Adds the current MapLocation to the closed list
             closedList.add(currentLoc);
             // Instantiates a list of the neighbors of the current location
             List<MapLocation> neighbours = currentLoc.getNeighbours(xExtent, yExtent);
             // Loops through all of the neighbors of the MapLocation m
-            for(MapLocation m : neighbours){
-                if(archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))){
+            for (MapLocation m : neighbours) {
+                if (!m.equals(goal) && archer1.isAlive() && archer1.getMapLocation().equals(m) || (archer2.isAlive() && archer2.getMapLocation().equals(m))) {
                     continue;
                 }
                 // Won't choose to move to location m if there is a resource in the way
-                if(resourceAtLocation(m.x, m.y)){
-                    System.out.println("Can't go to "+m+" because it is resource-blocked.");
+                if (resourceAtLocation(m.x, m.y)) {
                     continue;
                 }
                 // Won't choose to move to location m if it is already in the closed list
-                if(closedList.contains(m)){
+                if (closedList.contains(m)) {
                     continue;
                 }
                 // Won't choose to move to location m if it is already in the open list
-                if(queue.contains(m)){
+                if (queue.contains(m)) {
                     continue;
                 }
                 // Compute H(x) for the location
                 m.setHeuristic(goal);
-                System.out.println("Adding "+m+" to queue");
                 queue.add(m);
             }
         } while (!currentLoc.equals(goal));
@@ -600,9 +639,8 @@ public class GameState {
         Stack<MapLocation> path = new Stack<>();
 
         // Pushes the path onto the stack backwards so when you pop it off later it will be in order
-        while(!currentLoc.equals(start)){
+        while (!currentLoc.equals(start)) {
             path.push(currentLoc);
-            System.out.println("Go to location " + currentLoc.toString());
             currentLoc = currentLoc.previous;
         }
         return path;
