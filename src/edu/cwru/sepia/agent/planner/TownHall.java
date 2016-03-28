@@ -28,5 +28,11 @@ public class TownHall {
         return allowedToBuildPeasants && true;
     }
 
+    public int getCurrentGold() {
+        return currentGold;
+    }
 
+    public int getCurrentWood() {
+        return currentWood;
+    }
 }

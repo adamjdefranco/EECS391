@@ -1,5 +1,7 @@
 package edu.cwru.sepia.agent.planner;
 
+import edu.cwru.sepia.environment.model.state.ResourceNode;
+import edu.cwru.sepia.environment.model.state.Unit;
 import edu.cwru.sepia.util.Direction;
 
 import java.util.ArrayList;
@@ -12,6 +14,9 @@ import java.util.List;
  * a location. If you need modify the methods and add new ones. If you make changes add a note here about what was
  * changed and why.
  *
+ * Changes:
+ * 04/28/2016 James Wright: Added a static helper method to avoid having to create new positions for units.
+ *
  * This class is immutable, meaning any changes creates an entirely separate copy.
  */
 public class Position {
@@ -22,6 +27,14 @@ public class Position {
     public Position(int x, int y) {
         this.x = x;
         this.y = y;
+    }
+
+    public static Position forUnit(Unit.UnitView view){
+        return new Position(view.getXPosition(), view.getYPosition());
+    }
+
+    public static Position forResource(ResourceNode.ResourceView view){
+        return new Position(view.getXPosition(), view.getYPosition());
     }
 
     /**
@@ -95,14 +108,14 @@ public class Position {
     }
 
     /**
-     * True if the specified position can be reached in one step. Does not check if the position
-     * is in bounds.
+     * True if the specified position can be reached in exactly one step. Does not check if the position
+     * is in bounds. Will not return true if the positions are the same.
      *
      * @param position Position to check for adjacency
-     * @return true if adjacent, false otherwise
+     * @return true if adjacent, false otherwise. false if the positions are the same.
      */
     public boolean isAdjacent(Position position) {
-        return Math.abs(x - position.x) <= 1 && Math.abs(y - position.y) <= 1;
+        return Math.abs(x - position.x) == 1 || Math.abs(y - position.y) == 1;
     }
 
     /**
