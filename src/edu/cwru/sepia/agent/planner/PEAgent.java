@@ -21,7 +21,7 @@ import java.util.Stack;
 public class PEAgent extends Agent {
 
     // The plan being executed
-    private Stack<StripsAction> plan = null;
+    private Stack<StripsAction> plan;
 
     // maps the real unit Ids to the plan's unit ids
     // when you're planning you won't know the true unit IDs that sepia assigns. So you'll use placeholders (1, 2, 3).
@@ -29,10 +29,12 @@ public class PEAgent extends Agent {
     private Map<Integer, Integer> peasantIdMap;
     private int townhallId;
     private int peasantTemplateId;
+    private int requiredWood;
+    private int requiredGold;
 
     public PEAgent(int playernum, Stack<StripsAction> plan) {
         super(playernum);
-        peasantIdMap = new HashMap<Integer, Integer>();
+        peasantIdMap = new HashMap<>();
         this.plan = plan;
 
     }
@@ -92,7 +94,8 @@ public class PEAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-        // TODO: Implement me!
+        StripsAction nextAction = plan.pop();
+//        if(nextAction.preconditionsMet(new GameState(stateView,playernum,)))
         return null;
     }
 
@@ -102,6 +105,7 @@ public class PEAgent extends Agent {
      * @return SEPIA representation of same action
      */
     private Action createSepiaAction(StripsAction action) {
+
         return null;
     }
 

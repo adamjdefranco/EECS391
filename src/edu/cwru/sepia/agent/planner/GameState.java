@@ -1,8 +1,13 @@
 package edu.cwru.sepia.agent.planner;
 
+import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
+import edu.cwru.sepia.environment.model.state.Unit;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * This class is used to represent the state of the game after applying one of the available actions. It will also
@@ -23,6 +28,10 @@ import java.util.List;
  */
 public class GameState implements Comparable<GameState> {
 
+    public TownHall townHall;
+    public Map<Integer,Peasant> peasants;
+    public Map<Integer, ResourceNode> resources;
+
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
      * nodes should be constructed from the another constructor you create or by factory functions that you create.
@@ -34,7 +43,23 @@ public class GameState implements Comparable<GameState> {
      * @param buildPeasants True if the BuildPeasant action should be considered
      */
     public GameState(State.StateView state, int playernum, int requiredGold, int requiredWood, boolean buildPeasants) {
-        // TODO: Implement me!
+        peasants = new HashMap<>();
+        resources = new HashMap<>();
+        for(Unit.UnitView unit : state.getUnitIds(playernum).stream().map(state::getUnit).collect(Collectors.toList())){
+            String unitType = unit.getTemplateView().getName().toLowerCase();
+            if(unitType.equals("townhall")) {
+                this.townHall = new TownHall(unit.getID(),
+                        new Position(unit.getXPosition(), unit.getYPosition()),
+                        requiredGold,
+                        requiredWood,
+                        buildPeasants);
+            } else if(unitType.equals("peasant")) {
+                Peasant p = new Peasant(unit.getID());
+                p.setPosition(new Position(unit.getXPosition(), unit.getYPosition()));
+                peasants.put(p.id,p);
+                //TODO probably initialize other things here.
+            }
+        }
     }
 
     /**

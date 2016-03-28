@@ -24,7 +24,7 @@ public class PlannerAgent extends Agent {
     public PlannerAgent(int playernum, String[] params) {
         super(playernum);
 
-        if(params.length < 3) {
+        if (params.length < 3) {
             System.err.println("You must specify the required wood and gold amounts and whether peasants should be built");
         }
 
@@ -41,7 +41,7 @@ public class PlannerAgent extends Agent {
 
         Stack<StripsAction> plan = AstarSearch(new GameState(stateView, playernum, requiredGold, requiredWood, buildPeasants));
 
-        if(plan == null) {
+        if (plan == null) {
             System.err.println("No plan was found");
             System.exit(1);
             return null;
@@ -59,7 +59,7 @@ public class PlannerAgent extends Agent {
 
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-        if(peAgent == null) {
+        if (peAgent == null) {
             System.err.println("Planning failed. No PEAgent initialized.");
             return null;
         }
@@ -91,8 +91,26 @@ public class PlannerAgent extends Agent {
      * @return The plan or null if no plan is found.
      */
     private Stack<StripsAction> AstarSearch(GameState startState) {
-        // TODO: Implement me!
-        return null;
+
+//        PriorityQueue<GameState> stateQueue = new PriorityQueue<>((Comparator<GameState>) (o1, o2) -> Double.compare(o1.getCost() + o1.heuristic(), o1.getCost() + o2.heuristic()));
+//        stateQueue.add(startState);
+//        GameState currentState;
+//        do {
+//            currentState = stateQueue.poll();
+//
+//            if (currentState.isGoal()) {
+//                break;
+//            }
+//            stateQueue.addAll(startState.generateChildren());
+//        } while (!stateQueue.isEmpty());
+//        if(currentState.isGoal()){
+//            while(!currentState.equals(startState)){
+//
+//            }
+//        } else {
+            return null;
+//        }
+
     }
 
     /**
@@ -122,7 +140,7 @@ public class PlannerAgent extends Agent {
             outputWriter = new PrintWriter(outputFile.getAbsolutePath());
 
             Stack<StripsAction> tempPlan = (Stack<StripsAction>) plan.clone();
-            while(!tempPlan.isEmpty()) {
+            while (!tempPlan.isEmpty()) {
                 outputWriter.println(tempPlan.pop().toString());
             }
         } catch (FileNotFoundException e) {
