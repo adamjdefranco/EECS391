@@ -5,7 +5,7 @@ import edu.cwru.sepia.environment.model.state.State;
 import java.util.List;
 
 /**
- * This class is used to represent the state of the game after applying one of the avaiable actions. It will also
+ * This class is used to represent the state of the game after applying one of the available actions. It will also
  * track the A* specific information such as the parent pointer and the cost and heuristic function. Remember that
  * unlike the path planning A* from the first assignment the cost of an action may be more than 1. Specifically the cost
  * of executing a compound action such as move can be more than 1. You will need to account for this in your heuristic
