@@ -6,7 +6,6 @@ import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -30,7 +29,7 @@ public class GameState implements Comparable<GameState> {
 
     public TownHall townHall;
     public Map<Integer, Peasant> peasants;
-    public Map<Integer, ResourceNode.ResourceView> resources;
+    public Map<Integer, Resource> resources;
 
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
@@ -44,7 +43,7 @@ public class GameState implements Comparable<GameState> {
      */
     public GameState(State.StateView state, int playernum, int requiredGold, int requiredWood, boolean buildPeasants) {
         peasants = new HashMap<>();
-        resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c->c));
+        resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c->new Resource(c.getID(), Position.forResource(c),c.getAmountRemaining(),c.getType())));
         for (Unit.UnitView unit : state.getUnitIds(playernum).stream().map(state::getUnit).collect(Collectors.toList())) {
             String unitType = unit.getTemplateView().getName().toLowerCase();
             if (unitType.equals("townhall")) {
@@ -61,16 +60,15 @@ public class GameState implements Comparable<GameState> {
                 if(this.townHall != null && p.getPosition().isAdjacent(townHall.pos)){
                     p.setAdjacentTownHall(true);
                 }
-                for(ResourceNode.ResourceView resource : resources.values()){
-                    Position resourcePos = Position.forResource(resource);
+                for(Resource resource : resources.values()){
                     if(p.isAdjacentGoldSource() && p.isAdjacentTownHall() && p.isAdjacentWoodSource()){
                         //No point continuing to search to see if the unit is adjacent to things... this probably wont be triggered.
                         break;
                     }
-                    if(resource.getType() == ResourceNode.Type.GOLD_MINE && !p.isAdjacentGoldSource() && p.getPosition().isAdjacent(resourcePos)){
+                    if(resource.type == ResourceNode.Type.GOLD_MINE && !p.isAdjacentGoldSource() && p.getPosition().isAdjacent(resource.position)){
                         p.setAdjacentGoldSource(true);
                     }
-                    if(resource.getType() == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resourcePos)){
+                    if(resource.type == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resource.position)){
                         p.setAdjacentWoodSource(true);
                     }
                 }
@@ -79,7 +77,11 @@ public class GameState implements Comparable<GameState> {
         }
     }
 
-
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall) {
+        this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r->r.id, r->r));
+        this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r->r.id, r->r));
+        this.townHall = new TownHall(townHall);
+    }
 
     public static GameState applyAction(GameState state, StripsAction action){
 
@@ -103,8 +105,9 @@ public class GameState implements Comparable<GameState> {
      * @return A list of the possible successor states and their associated actions
      */
     public List<GameState> generateChildren() {
-        List<GameState> 
-        return generateChildrenHelper(this,this.peasants.values().iterator());
+        List<GameState> gameStates = new ArrayList<>();
+        gameStates.add(this);
+        return generateChildrenHelper(gameStates,this.peasants.values().iterator());
     }
 
     private List<GameState> generateChildrenHelper(List<GameState> createdStates, Iterator<Peasant> peasants) {

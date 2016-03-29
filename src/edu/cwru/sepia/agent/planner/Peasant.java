@@ -17,6 +17,16 @@ public class Peasant {
         this.id = id;
     }
 
+    public Peasant(Peasant other) {
+        this.id = other.id;
+        this.holdingGold = other.holdingGold;
+        this.holdingWood = other.holdingWood;
+        this.adjacentTownHall = other.adjacentTownHall;
+        this.adjacentGoldSource = other.adjacentGoldSource;
+        this.adjacentWoodSource = other.adjacentWoodSource;
+        this.position = new Position(other.position);
+    }
+
     public boolean isHoldingGold() {
         return holdingGold;
     }

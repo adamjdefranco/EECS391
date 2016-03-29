@@ -23,6 +23,16 @@ public class TownHall {
         this.allowedToBuildPeasants = allowedToBuildPeasants;
     }
 
+    public TownHall(TownHall other) {
+        this.requiredTotalGold = other.requiredTotalGold;
+        this.requiredTotalWood = other.requiredTotalWood;
+        this.id = other.id;
+        this.pos = other.pos;
+        this.allowedToBuildPeasants = other.allowedToBuildPeasants;
+        this.currentGold = other.currentGold;
+        this.currentWood = other.currentWood;
+    }
+
     public boolean canBuildPeasants(){
         //TODO modify this so that this will return true when the town hall can build a peasant.
         return allowedToBuildPeasants && true;
