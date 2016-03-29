@@ -84,7 +84,7 @@ public class GameState implements Comparable<GameState> {
     }
 
     public static GameState applyAction(GameState state, StripsAction action){
-
+        return state;
     }
 
     /**
@@ -131,7 +131,7 @@ public class GameState implements Comparable<GameState> {
 
     private List<StripsAction> generateActionsForPeasant(Peasant p){
         List<StripsAction> actions = new ArrayList<>();
-        for(ResourceNode.ResourceView resource : resources.values()){
+        for(Resource resource : resources.values()){
 
         }
         return actions;
