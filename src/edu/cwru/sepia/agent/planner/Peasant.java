@@ -64,4 +64,33 @@ public class Peasant {
     public void setAdjacentWoodSource(boolean adjacentWoodSource) {
         this.adjacentWoodSource = adjacentWoodSource;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Peasant peasant = (Peasant) o;
+
+        if (id != peasant.id) return false;
+        if (isHoldingGold() != peasant.isHoldingGold()) return false;
+        if (isHoldingWood() != peasant.isHoldingWood()) return false;
+        if (isAdjacentTownHall() != peasant.isAdjacentTownHall()) return false;
+        if (isAdjacentGoldSource() != peasant.isAdjacentGoldSource()) return false;
+        if (isAdjacentWoodSource() != peasant.isAdjacentWoodSource()) return false;
+        return getPosition() != null ? getPosition().equals(peasant.getPosition()) : peasant.getPosition() == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + (isHoldingGold() ? 1 : 0);
+        result = 31 * result + (isHoldingWood() ? 1 : 0);
+        result = 31 * result + (isAdjacentTownHall() ? 1 : 0);
+        result = 31 * result + (isAdjacentGoldSource() ? 1 : 0);
+        result = 31 * result + (isAdjacentWoodSource() ? 1 : 0);
+        result = 31 * result + (getPosition() != null ? getPosition().hashCode() : 0);
+        return result;
+    }
 }

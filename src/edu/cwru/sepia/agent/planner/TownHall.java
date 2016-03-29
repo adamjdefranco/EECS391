@@ -35,4 +35,29 @@ public class TownHall {
     public int getCurrentWood() {
         return currentWood;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TownHall townHall = (TownHall) o;
+
+        if (requiredTotalGold != townHall.requiredTotalGold) return false;
+        if (requiredTotalWood != townHall.requiredTotalWood) return false;
+        if (allowedToBuildPeasants != townHall.allowedToBuildPeasants) return false;
+        if (getCurrentGold() != townHall.getCurrentGold()) return false;
+        return getCurrentWood() == townHall.getCurrentWood();
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = requiredTotalGold;
+        result = 31 * result + requiredTotalWood;
+        result = 31 * result + (allowedToBuildPeasants ? 1 : 0);
+        result = 31 * result + getCurrentGold();
+        result = 31 * result + getCurrentWood();
+        return result;
+    }
 }

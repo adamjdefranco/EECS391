@@ -1,12 +1,11 @@
 package edu.cwru.sepia.agent.planner;
 
+import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -72,12 +71,18 @@ public class GameState implements Comparable<GameState> {
                         p.setAdjacentGoldSource(true);
                     }
                     if(resource.getType() == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resourcePos)){
-                        p.setAdjacentGoldSource(true);
+                        p.setAdjacentWoodSource(true);
                     }
                 }
                 //TODO probably initialize other things here.
             }
         }
+    }
+
+
+
+    public static GameState applyAction(GameState state, StripsAction action){
+
     }
 
     /**
@@ -98,8 +103,35 @@ public class GameState implements Comparable<GameState> {
      * @return A list of the possible successor states and their associated actions
      */
     public List<GameState> generateChildren() {
-        // TODO: Implement me!
-        return null;
+        List<GameState> 
+        return generateChildrenHelper(this,this.peasants.values().iterator());
+    }
+
+    private List<GameState> generateChildrenHelper(List<GameState> createdStates, Iterator<Peasant> peasants) {
+        if(peasants.hasNext()){
+            Peasant p = peasants.next();
+            List<GameState> newlyCreatedStates = new ArrayList<>();
+            createdStates.forEach(state -> state.generateActionsForPeasant(p).forEach(action -> newlyCreatedStates.add(GameState.applyAction(state,action))));
+            for(GameState gameState : createdStates) {
+                List<StripsAction> actions = gameState.generateActionsForPeasant(p);
+                newlyCreatedStates.addAll(actions.stream().map(action -> GameState.applyAction(gameState, action)).collect(Collectors.toList()));
+            }
+            if(peasants.hasNext()){
+                return generateChildrenHelper(newlyCreatedStates,peasants);
+            } else {
+                return newlyCreatedStates;
+            }
+        } else {
+            return createdStates;
+        }
+    }
+
+    private List<StripsAction> generateActionsForPeasant(Peasant p){
+        List<StripsAction> actions = new ArrayList<>();
+        for(ResourceNode.ResourceView resource : resources.values()){
+
+        }
+        return actions;
     }
 
     /**
@@ -159,7 +191,8 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public int hashCode() {
-        // TODO: Implement me!
-        return 0;
+        int result = townHall.hashCode();
+        result = 31 * result + peasants.hashCode();
+        return result;
     }
 }

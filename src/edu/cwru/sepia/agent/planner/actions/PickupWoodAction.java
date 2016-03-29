@@ -7,6 +7,10 @@ import edu.cwru.sepia.agent.planner.GameState;
  */
 public class PickupWoodAction implements StripsAction {
 
+    public PickupWoodAction(int unitID){
+
+    }
+
     @Override
     public boolean preconditionsMet(GameState state) {
         return false;
