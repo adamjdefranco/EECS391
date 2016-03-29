@@ -25,6 +25,7 @@ public class DepositWoodAction implements StripsAction {
     @Override
     public GameState apply(GameState state) {
         peasant.setHoldingWood(false);
+        townHall.incrementWood(100);
         return null;
     }
 }

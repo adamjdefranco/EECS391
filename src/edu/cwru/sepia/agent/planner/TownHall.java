@@ -38,6 +38,10 @@ public class TownHall {
         return allowedToBuildPeasants && true;
     }
 
+    public void incrementGold(int amountOfGold) { this.currentGold += amountOfGold; }
+
+    public void incrementWood(int amountOfWood) { this.currentGold += amountOfWood; }
+
     public int getCurrentGold() {
         return currentGold;
     }

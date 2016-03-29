@@ -25,7 +25,7 @@ public class DepositGoldAction implements StripsAction {
     @Override
     public GameState apply(GameState state) {
         peasant.setHoldingGold(false);
-        // Do we need to do townHall.HasWood() or something of the sort?
+        townHall.incrementGold(100);
         // TODO: How do we update the gamestate to reflect this?
         return null;
     }
