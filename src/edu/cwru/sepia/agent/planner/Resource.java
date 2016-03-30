@@ -7,10 +7,10 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class Resource {
 
-    final int id;
-    final Position position;
+    public final int id;
+    public final Position position;
     int amountRemaining;
-    final ResourceNode.Type type;
+    public final ResourceNode.Type type;
 
     public Resource(int id, Position position, int amountRemaining, ResourceNode.Type type) {
         this.id = id;

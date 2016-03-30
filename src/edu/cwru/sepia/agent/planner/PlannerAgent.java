@@ -92,7 +92,7 @@ public class PlannerAgent extends Agent {
      */
     private Stack<StripsAction> AstarSearch(GameState startState) {
 
-//        PriorityQueue<GameState> stateQueue = new PriorityQueue<>((Comparator<GameState>) (o1, o2) -> Double.compare(o1.getCost() + o1.heuristic(), o1.getCost() + o2.heuristic()));
+//        PriorityQueue<GameState> stateQueue = new PriorityQueue<>((Comparator<GameState>) (o1, o2) -> );
 //        stateQueue.add(startState);
 //        GameState currentState;
 //        do {

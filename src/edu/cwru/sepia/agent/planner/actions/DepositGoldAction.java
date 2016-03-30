@@ -9,24 +9,32 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class DepositGoldAction implements StripsAction {
 
-    final Peasant peasant;
-    final TownHall townHall;
+    final int peasantID;
+    final int townHallID;
 
     public DepositGoldAction(Peasant peasant, TownHall townHall) {
-        this.peasant = peasant;
-        this.townHall = townHall;
+        this.peasantID = peasant.id;
+        this.townHallID = townHall.id;
     }
 
     @Override
     public boolean preconditionsMet(GameState state) {
-        return peasant.isHoldingGold() && peasant.isAdjacentTownHall();
+        return state.peasants.containsKey(peasantID)
+                && state.townHall.id == townHallID
+                && state.peasants.get(peasantID).isHoldingGold()
+                && state.peasants.get(peasantID).isAdjacentTownHall();
     }
 
     @Override
     public GameState apply(GameState state) {
-        peasant.setHoldingGold(false);
-        townHall.incrementGold(100);
+        state.peasants.get(peasantID).setHoldingGold(false);
+        state.townHall.incrementGold(100);
         // TODO: How do we update the gamestate to reflect this?
-        return null;
+        return state;
+    }
+
+    @Override
+    public double getCost(GameState state) {
+        return 1;
     }
 }

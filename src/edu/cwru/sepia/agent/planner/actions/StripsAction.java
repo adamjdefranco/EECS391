@@ -1,12 +1,8 @@
 package edu.cwru.sepia.agent.planner.actions;
 
+import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.planner.GameState;
 
-/**
- * A useful start of an interface representing strips actions. You may add new methods to this interface if needed, but
- * you should implement the ones provided. You may also find it useful to specify a method that returns the effects
- * of a StripsAction.
- */
 public interface StripsAction {
 
     /**
@@ -22,7 +18,7 @@ public interface StripsAction {
      * @param state GameState to check if action is applicable
      * @return true if apply can be called, false otherwise
      */
-    public boolean preconditionsMet(GameState state);
+    boolean preconditionsMet(GameState state);
 
     /**
      * Applies the action instance to the given GameState producing a new GameState in the process.
@@ -36,5 +32,9 @@ public interface StripsAction {
      * @param state State to apply action to
      * @return State resulting from successful action appliction.
      */
-    public GameState apply(GameState state);
+    GameState apply(GameState state);
+
+    double getCost(GameState state);
+
+//    Action getSepiaAction();
 }

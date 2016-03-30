@@ -1,6 +1,6 @@
 package edu.cwru.sepia.agent.planner;
 
-import edu.cwru.sepia.agent.planner.actions.StripsAction;
+import edu.cwru.sepia.agent.planner.actions.*;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 
 /**
  * This class is used to represent the state of the game after applying one of the available actions. It will also
- * track the A* specific information such as the parent pointer and the cost and heuristic function. Remember that
- * unlike the path planning A* from the first assignment the cost of an action may be more than 1. Specifically the cost
+ * track the A* specific information such as the parent pointer and the costToGetHere and heuristic function. Remember that
+ * unlike the path planning A* from the first assignment the costToGetHere of an action may be more than 1. Specifically the costToGetHere
  * of executing a compound action such as move can be more than 1. You will need to account for this in your heuristic
- * and your cost function.
+ * and your costToGetHere function.
  * <p>
  * The first instance is constructed from the StateView object (like in PA2). Implement the methods provided and
  * add any other methods and member variables you need.
@@ -30,6 +30,8 @@ public class GameState implements Comparable<GameState> {
     public TownHall townHall;
     public Map<Integer, Peasant> peasants;
     public Map<Integer, Resource> resources;
+    public List<List<StripsAction>> actions;
+    private int costToGetHere = 0;
 
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
@@ -43,7 +45,8 @@ public class GameState implements Comparable<GameState> {
      */
     public GameState(State.StateView state, int playernum, int requiredGold, int requiredWood, boolean buildPeasants) {
         peasants = new HashMap<>();
-        resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c->new Resource(c.getID(), Position.forResource(c),c.getAmountRemaining(),c.getType())));
+        actions = new ArrayList<>();
+        resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c -> new Resource(c.getID(), Position.forResource(c), c.getAmountRemaining(), c.getType())));
         for (Unit.UnitView unit : state.getUnitIds(playernum).stream().map(state::getUnit).collect(Collectors.toList())) {
             String unitType = unit.getTemplateView().getName().toLowerCase();
             if (unitType.equals("townhall")) {
@@ -52,39 +55,45 @@ public class GameState implements Comparable<GameState> {
                         requiredGold,
                         requiredWood,
                         buildPeasants);
-                this.peasants.values().stream().filter(p->p.getPosition().isAdjacent(townHall.pos)).forEach(peasant -> peasant.setAdjacentTownHall(true));
+                this.peasants.values().stream().filter(p -> p.getPosition().isAdjacent(townHall.pos)).forEach(peasant -> peasant.setAdjacentTownHall(true));
             } else if (unitType.equals("peasant")) {
-                Peasant p = new Peasant(unit.getID());
-                p.setPosition(new Position(unit.getXPosition(), unit.getYPosition()));
+                Peasant p = new Peasant(unit.getID(), Position.forUnit(unit));
                 peasants.put(p.id, p);
-                if(this.townHall != null && p.getPosition().isAdjacent(townHall.pos)){
+                if (this.townHall != null && p.getPosition().isAdjacent(townHall.pos)) {
                     p.setAdjacentTownHall(true);
                 }
-                for(Resource resource : resources.values()){
-                    if(p.isAdjacentGoldSource() && p.isAdjacentTownHall() && p.isAdjacentWoodSource()){
+                for (Resource resource : resources.values()) {
+                    if (p.isAdjacentGoldSource() && p.isAdjacentTownHall() && p.isAdjacentWoodSource()) {
                         //No point continuing to search to see if the unit is adjacent to things... this probably wont be triggered.
                         break;
                     }
-                    if(resource.type == ResourceNode.Type.GOLD_MINE && !p.isAdjacentGoldSource() && p.getPosition().isAdjacent(resource.position)){
+                    if (resource.type == ResourceNode.Type.GOLD_MINE && !p.isAdjacentGoldSource() && p.getPosition().isAdjacent(resource.position)) {
                         p.setAdjacentGoldSource(true);
                     }
-                    if(resource.type == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resource.position)){
+                    if (resource.type == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resource.position)) {
                         p.setAdjacentWoodSource(true);
                     }
                 }
-                //TODO probably initialize other things here.
             }
         }
     }
 
-    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall) {
-        this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r->r.id, r->r));
-        this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r->r.id, r->r));
-        this.townHall = new TownHall(townHall);
+    public GameState(GameState old) {
+        this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
     }
 
-    public static GameState applyAction(GameState state, StripsAction action){
-        return state;
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, int previousCost) {
+        this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
+        this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
+        this.townHall = new TownHall(townHall);
+        this.actions = new ArrayList<>(actions);
+        this.costToGetHere = previousCost;
+    }
+
+    public static GameState applyAction(GameState state, StripsAction action) {
+        GameState newState = action.apply(new GameState(state));
+        newState.actions.get(newState.actions.size() - 1).add(action);
+        return newState;
     }
 
     /**
@@ -95,7 +104,7 @@ public class GameState implements Comparable<GameState> {
      * @return true if the goal conditions are met in this instance of game state.
      */
     public boolean isGoal() {
-        return townHall.getCurrentGold() == townHall.requiredTotalGold && townHall.getCurrentWood() == townHall.requiredTotalWood;
+        return townHall.getCurrentGold() >= townHall.requiredTotalGold && townHall.getCurrentWood() >= townHall.requiredTotalWood;
     }
 
     /**
@@ -106,21 +115,25 @@ public class GameState implements Comparable<GameState> {
      */
     public List<GameState> generateChildren() {
         List<GameState> gameStates = new ArrayList<>();
-        gameStates.add(this);
-        return generateChildrenHelper(gameStates,this.peasants.values().iterator());
+        GameState stateClone = new GameState(this);
+        stateClone.actions.add(new ArrayList<>());
+        gameStates.add(stateClone);
+        return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
 
     private List<GameState> generateChildrenHelper(List<GameState> createdStates, Iterator<Peasant> peasants) {
-        if(peasants.hasNext()){
+        if (peasants.hasNext()) {
             Peasant p = peasants.next();
             List<GameState> newlyCreatedStates = new ArrayList<>();
-            createdStates.forEach(state -> state.generateActionsForPeasant(p).forEach(action -> newlyCreatedStates.add(GameState.applyAction(state,action))));
-            for(GameState gameState : createdStates) {
-                List<StripsAction> actions = gameState.generateActionsForPeasant(p);
-                newlyCreatedStates.addAll(actions.stream().map(action -> GameState.applyAction(gameState, action)).collect(Collectors.toList()));
+            for(GameState newState : createdStates){
+                List<StripsAction> peasantActions = newState.generateActionsForPeasant(p);
+                for(StripsAction a : peasantActions){
+                    GameState postApplication = GameState.applyAction(newState,a);
+                    newlyCreatedStates.add(postApplication);
+                }
             }
-            if(peasants.hasNext()){
-                return generateChildrenHelper(newlyCreatedStates,peasants);
+            if (peasants.hasNext()) {
+                return generateChildrenHelper(newlyCreatedStates, peasants);
             } else {
                 return newlyCreatedStates;
             }
@@ -129,10 +142,43 @@ public class GameState implements Comparable<GameState> {
         }
     }
 
-    private List<StripsAction> generateActionsForPeasant(Peasant p){
+    private List<StripsAction> generateActionsForPeasant(Peasant p) {
         List<StripsAction> actions = new ArrayList<>();
-        for(Resource resource : resources.values()){
-
+        for (Resource resource : resources.values()) {
+            switch (resource.type) {
+                case GOLD_MINE:
+                    MoveToGoldAction goldMoveAction = new MoveToGoldAction(p, resource);
+                    if (goldMoveAction.preconditionsMet(this)) {
+                        actions.add(goldMoveAction);
+                    }
+                    PickupGoldAction getGoldAction = new PickupGoldAction(p, resource);
+                    if (getGoldAction.preconditionsMet(this)) {
+                        actions.add(getGoldAction);
+                    }
+                    break;
+                case TREE:
+                    MoveToWoodAction woodMoveAction = new MoveToWoodAction(p, resource);
+                    if (woodMoveAction.preconditionsMet(this)) {
+                        actions.add(woodMoveAction);
+                    }
+                    PickupWoodAction getWoodAction = new PickupWoodAction(p, resource);
+                    if (getWoodAction.preconditionsMet(this)) {
+                        actions.add(getWoodAction);
+                    }
+                    break;
+            }
+        }
+        MoveToTownhallAction townhallMoveAction = new MoveToTownhallAction(p, townHall);
+        if (townhallMoveAction.preconditionsMet(this)) {
+            actions.add(townhallMoveAction);
+        }
+        DepositGoldAction putGoldAction = new DepositGoldAction(p, townHall);
+        if (putGoldAction.preconditionsMet(this)) {
+            actions.add(putGoldAction);
+        }
+        DepositWoodAction putWoodAction = new DepositWoodAction(p, townHall);
+        if (putWoodAction.preconditionsMet(this)) {
+            actions.add(putWoodAction);
         }
         return actions;
     }
@@ -143,22 +189,41 @@ public class GameState implements Comparable<GameState> {
      * <p>
      * Add a description here in your submission explaining your heuristic.
      *
-     * @return The value estimated remaining cost to reach a goal state from this state.
+     * @return The value estimated remaining costToGetHere to reach a goal state from this state.
      */
     public double heuristic() {
-        // TODO: Implement me!
-        return 0.0;
+        double heuristic = 0;
+        Iterator<Peasant> iter = peasants.values().iterator();
+        while (iter.hasNext()) {
+            Peasant peasant = iter.next();
+            if (peasant.isHoldingWood()) {
+                heuristic += townHall.requiredTotalWood - townHall.getCurrentWood() - 1;
+                heuristic -= peasant.getPosition().chebyshevDistance(townHall.pos);
+            } else if (peasant.isHoldingGold()) {
+                heuristic += townHall.requiredTotalGold - townHall.getCurrentGold() - 1;
+                heuristic -= peasant.getPosition().chebyshevDistance(townHall.pos);
+            }
+        }
+//        if (buildPeasants) {
+//            heuristic += townhall.gold;
+//        }
+        heuristic -= townHall.requiredTotalGold - townHall.requiredTotalWood + townHall.getCurrentGold() + townHall.getCurrentWood();
+        return heuristic;
     }
 
     /**
-     * Write the function that computes the current cost to get to this node. This is combined with your heuristic to
+     * Write the function that computes the current costToGetHere to get to this node. This is combined with your heuristic to
      * determine which actions/states are better to explore.
      *
-     * @return The current cost to reach this goal
+     * @return The current costToGetHere to reach this goal
      */
     public double getCost() {
-        // TODO: Implement me!
-        return 0.0;
+        double cost = (double) this.costToGetHere;
+        List<StripsAction> thisStepActions = actions.get(actions.size() - 1);
+        for (StripsAction action : thisStepActions) {
+            cost += action.getCost(this);
+        }
+        return cost;
     }
 
     /**
@@ -170,8 +235,7 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public int compareTo(GameState o) {
-        // TODO: Implement me!
-        return 0;
+        return Double.compare(getCost() + heuristic(), o.getCost() + o.heuristic());
     }
 
     /**
@@ -182,8 +246,23 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public boolean equals(Object o) {
-        // TODO: Implement me!
-        return false;
+        if (!getClass().equals(o.getClass())) {
+            return false;
+        }
+        GameState other = (GameState) o;
+        if (!townHall.equals(other.townHall)) {
+            return false;
+        }
+        if(!resources.equals(other.resources)){
+            return false;
+        }
+        if(!peasants.equals(other.peasants)){
+            return false;
+        }
+        if (other.getCost() != getCost()) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -196,6 +275,9 @@ public class GameState implements Comparable<GameState> {
     public int hashCode() {
         int result = townHall.hashCode();
         result = 31 * result + peasants.hashCode();
+        result = 31 * result + resources.hashCode();
+        result = 31 * result + actions.hashCode();
+        result = 31 * result + costToGetHere;
         return result;
     }
 }

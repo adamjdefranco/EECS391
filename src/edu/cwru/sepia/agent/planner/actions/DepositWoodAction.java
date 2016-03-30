@@ -9,23 +9,31 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class DepositWoodAction implements StripsAction {
 
-    public DepositWoodAction(Peasant peasant, TownHall townHall) {
-        this.peasant = peasant;
-        this.townHall = townHall;
-    }
+    final int peasantID;
+    final int townHallID;
 
-    final Peasant peasant;
-    final TownHall townHall;
+    public DepositWoodAction(Peasant peasant, TownHall townHall) {
+        this.peasantID = peasant.id;
+        this.townHallID = townHall.id;
+    }
 
     @Override
     public boolean preconditionsMet(GameState state) {
-        return peasant.isHoldingWood() && peasant.isAdjacentTownHall();
+        return state.peasants.containsKey(peasantID)
+                && state.townHall.id == townHallID
+                && state.peasants.get(peasantID).isHoldingWood()
+                && state.peasants.get(peasantID).isAdjacentTownHall();
     }
 
     @Override
     public GameState apply(GameState state) {
-        peasant.setHoldingWood(false);
-        townHall.incrementWood(100);
-        return null;
+        state.peasants.get(peasantID).setHoldingWood(false);
+        state.townHall.incrementWood(100);
+        return state;
+    }
+
+    @Override
+    public double getCost(GameState state) {
+        return 1;
     }
 }

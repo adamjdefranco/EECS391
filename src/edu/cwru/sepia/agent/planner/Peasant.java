@@ -1,5 +1,7 @@
 package edu.cwru.sepia.agent.planner;
 
+import edu.cwru.sepia.environment.model.state.ResourceNode;
+
 /**
  * Created by james on 3/28/16.
  */
@@ -13,8 +15,9 @@ public class Peasant {
     private boolean adjacentWoodSource = false;
     private Position position;
 
-    public Peasant(int id) {
+    public Peasant(int id, Position position) {
         this.id = id;
+        this.position = position;
     }
 
     public Peasant(Peasant other) {
@@ -24,7 +27,7 @@ public class Peasant {
         this.adjacentTownHall = other.adjacentTownHall;
         this.adjacentGoldSource = other.adjacentGoldSource;
         this.adjacentWoodSource = other.adjacentWoodSource;
-        this.position = new Position(other.position);
+        this.position = other.position;
     }
 
     public boolean isHoldingGold() {
@@ -74,6 +77,20 @@ public class Peasant {
     public void setAdjacentWoodSource(boolean adjacentWoodSource) {
         this.adjacentWoodSource = adjacentWoodSource;
     }
+//
+//    public void updatePeasantLocationVariables(GameState state){
+//        if(state.townHall != null && getPosition().isAdjacent(state.townHall.pos)){
+//            setAdjacentTownHall(true);
+//        }
+//        for(Resource resource : state.resources.values()){
+//            if(resource.type == ResourceNode.Type.GOLD_MINE && getPosition().isAdjacent(resource.position)){
+//                setAdjacentGoldSource(true);
+//            }
+//            if(resource.type == ResourceNode.Type.TREE && getPosition().isAdjacent(resource.position)){
+//                setAdjacentWoodSource(true);
+//            }
+//        }
+//    }
 
     @Override
     public boolean equals(Object o) {

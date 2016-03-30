@@ -9,22 +9,29 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class MoveToTownhallAction implements StripsAction {
 
-    final Peasant peasant;
-    final TownHall townHall;
+    final int peasantID;
+    final int townHallID;
 
     public MoveToTownhallAction(Peasant peasant, TownHall townHall) {
-        this.peasant = peasant;
-        this.townHall = townHall;
+        this.peasantID = peasant.id;
+        this.townHallID = townHall.id;
     }
 
     @Override
     public boolean preconditionsMet(GameState state) {
-        return !(peasant.isAdjacentTownHall());
+        return state.townHall.id == townHallID
+                && state.peasants.containsKey(peasantID)
+                && !(state.peasants.get(peasantID).isAdjacentTownHall());
     }
 
     @Override
     public GameState apply(GameState state) {
-        peasant.setAdjacentTownHall(true);
-        return null;
+        state.peasants.get(peasantID).setAdjacentTownHall(true);
+        return state;
+    }
+
+    @Override
+    public double getCost(GameState state) {
+        return state.peasants.get(peasantID).getPosition().euclideanDistance(state.townHall.pos);
     }
 }
