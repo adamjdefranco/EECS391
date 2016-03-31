@@ -38,7 +38,7 @@ public class MoveToGoldAction implements StripsAction {
         clone.peasants.get(peasantID).setPosition(clone.resources.get(resourceID).position, clone);
         clone.peasants.get(peasantID).setAdjacentGoldSource(true);
         clone.addAction(this);
-        double cost = state.peasants.get(peasantID).getPosition().euclideanDistance(state.resources.get(resourceID).position);
+        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(state.resources.get(resourceID).position);
         clone.incrementCost(cost);
         return clone;
     }
