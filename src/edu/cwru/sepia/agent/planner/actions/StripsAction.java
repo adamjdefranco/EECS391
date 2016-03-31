@@ -34,6 +34,4 @@ public interface StripsAction {
      */
     GameState apply(GameState state);
 
-    double getCost(GameState state);
-
 }

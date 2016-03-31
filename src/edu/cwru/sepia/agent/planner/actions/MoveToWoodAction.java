@@ -29,13 +29,13 @@ public class MoveToWoodAction implements StripsAction {
 
     @Override
     public GameState apply(GameState state) {
-        state.peasants.get(peasantID).setAdjacentWoodSource(true);
-        state.peasants.get(peasantID).setPosition(state.resources.get(resourceID).position);
-        return state;
+        GameState clone = new GameState(state);
+        clone.peasants.get(peasantID).setAdjacentWoodSource(true);
+        clone.peasants.get(peasantID).setPosition(clone.resources.get(resourceID).position);
+        double cost = state.peasants.get(peasantID).getPosition().euclideanDistance(state.resources.get(resourceID).position);
+        clone.incrementCost(cost);
+        clone.addAction(this);
+        return clone;
     }
 
-    @Override
-    public double getCost(GameState state) {
-        return state.peasants.get(peasantID).getPosition().euclideanDistance(state.resources.get(resourceID).position);
-    }
 }

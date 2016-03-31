@@ -31,13 +31,12 @@ public class PickupGoldAction implements StripsAction {
 
     @Override
     public GameState apply(GameState state) {
-        Peasant p = state.peasants.get(peasantID);
+        GameState clone = new GameState(state);
+        Peasant p = clone.peasants.get(peasantID);
         p.setHoldingGold(true);
-        return state;
+        clone.incrementCost(1);
+        clone.addAction(this);
+        return clone;
     }
 
-    @Override
-    public double getCost(GameState state) {
-        return 1;
-    }
 }

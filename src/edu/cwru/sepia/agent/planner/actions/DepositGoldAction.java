@@ -27,13 +27,11 @@ public class DepositGoldAction implements StripsAction {
 
     @Override
     public GameState apply(GameState state) {
-        state.peasants.get(peasantID).setHoldingGold(false);
-        state.townHall.incrementGold(100);
-        return state;
-    }
-
-    @Override
-    public double getCost(GameState state) {
-        return 1;
+        GameState clone = new GameState(state);
+        clone.peasants.get(peasantID).setHoldingGold(false);
+        clone.townHall.incrementGold(100);
+        clone.incrementCost(1);
+        clone.addAction(this);
+        return clone;
     }
 }

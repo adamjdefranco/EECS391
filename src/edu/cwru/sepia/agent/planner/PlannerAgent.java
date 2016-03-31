@@ -113,6 +113,8 @@ public class PlannerAgent extends Agent {
                 for(GameState child : children){
                     if(!closedSet.contains(child)){
                         stateQueue.add(child);
+                    } else {
+                        System.out.println("Ignoring node because it's in the closed set.");
                     }
                 }
             }

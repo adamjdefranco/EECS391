@@ -94,13 +94,6 @@ public class GameState implements Comparable<GameState> {
         this.costToGetHere = previousCost;
     }
 
-    public static GameState applyAction(GameState state, StripsAction action) {
-        GameState newState = action.apply(new GameState(state));
-        newState.peasants.values().forEach(p->p.updatePeasantLocationVariables(newState));
-        newState.actions.get(newState.actions.size() - 1).add(action);
-        return newState;
-    }
-
     /**
      * Unlike in the first A* assignment there are many possible goal states. As long as the wood and gold requirements
      * are met the peasants can be at any location and the capacities of the resource locations can be anything. Use
@@ -120,14 +113,8 @@ public class GameState implements Comparable<GameState> {
      */
     public List<GameState> generateChildren() {
         List<GameState> gameStates = new ArrayList<>();
-        GameState stateClone = new GameState(this);
-        stateClone.actions.add(new ArrayList<>());
-        gameStates.add(stateClone);
-        List<GameState> children = generateChildrenHelper(gameStates, this.peasants.values().iterator());
-        for(GameState child : children){
-            child.actions.get(child.actions.size()-1).forEach(action->child.costToGetHere += action.getCost(this));
-        }
-        return children;
+        gameStates.add(this);
+        return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
 
     private List<GameState> generateChildrenHelper(List<GameState> createdStates, Iterator<Peasant> peasants) {
@@ -137,7 +124,7 @@ public class GameState implements Comparable<GameState> {
             for(GameState newState : createdStates){
                 List<StripsAction> peasantActions = newState.generateActionsForPeasant(p);
                 for(StripsAction a : peasantActions){
-                    GameState postApplication = GameState.applyAction(newState,a);
+                    GameState postApplication = a.apply(newState);
                     newlyCreatedStates.add(postApplication);
                 }
             }
@@ -203,11 +190,14 @@ public class GameState implements Comparable<GameState> {
     public double heuristic() {
         double heuristic = 0;
 
-        heuristic += (townHall.requiredTotalGold - townHall.getCurrentGold());
-        heuristic += (townHall.requiredTotalWood - townHall.getCurrentWood());
+        List<Peasant> holdingWoodPeasants = peasants.values().stream().filter(Peasant::isHoldingWood).collect(Collectors.toList());
+        List<Peasant> holdingGoldPeasants = peasants.values().stream().filter(Peasant::isHoldingGold).collect(Collectors.toList());
 
-        int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood() - (int)peasants.values().stream().filter(Peasant::isHoldingWood).count()*100;
-        int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold() - (int)peasants.values().stream().filter(Peasant::isHoldingGold).count()*100;
+        holdingGoldPeasants.forEach(p->p.getPosition().euclideanDistance(townHall.pos));
+        holdingWoodPeasants.forEach(p->p.getPosition().euclideanDistance(townHall.pos));
+
+        int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood() - holdingWoodPeasants.size()*100;
+        int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold() - holdingGoldPeasants.size()*100;
 
         List<Resource> goldMines = resources.values().stream().filter(res-> res.type == ResourceNode.Type.GOLD_MINE && res.amountRemaining > 0).sorted((r1,r2)->Double.compare(r1.position.euclideanDistance(townHall.pos),r1.position.euclideanDistance(townHall.pos))).collect(Collectors.toList());
         List<Resource> trees = resources.values().stream().filter(res-> res.type == ResourceNode.Type.TREE && res.amountRemaining > 0).sorted((r1,r2)->Double.compare(r1.position.euclideanDistance(townHall.pos),r1.position.euclideanDistance(townHall.pos))).collect(Collectors.toList());
@@ -216,10 +206,10 @@ public class GameState implements Comparable<GameState> {
             Resource tree = trees.get(0);
             double distance = townHall.pos.euclideanDistance(tree.position);
             if(tree.amountRemaining > remainingWood){
-                heuristic += distance*(Math.floor(remainingWood/100));
+                heuristic += 2*distance*(Math.floor(remainingWood/100));
                 remainingWood = 0;
             } else {
-                heuristic += distance*(Math.floor(tree.amountRemaining/100));
+                heuristic += 2*distance*(Math.floor(tree.amountRemaining/100));
                 remainingWood -= tree.amountRemaining;
                 trees.remove(0);
             }
@@ -229,45 +219,14 @@ public class GameState implements Comparable<GameState> {
             Resource mine = goldMines.get(0);
             double distance = townHall.pos.euclideanDistance(mine.position);
             if(mine.amountRemaining > remainingWood){
-                heuristic += distance*(Math.floor(remainingGold/100));
+                heuristic += 2*distance*(Math.floor(remainingGold/100));
                 remainingGold = 0;
             } else {
-                heuristic += distance*(Math.floor(mine.amountRemaining/100));
+                heuristic += 2*distance*(Math.floor(mine.amountRemaining/100));
                 remainingGold -= mine.amountRemaining;
                 goldMines.remove(0);
             }
         }
-
-//        Iterator<Peasant> iter = peasants.values().iterator();
-//        while (iter.hasNext()) {
-//            Peasant p = iter.next();
-//            if(townHall.requiredTotalGold-townHall.getCurrentGold() > 0){
-//                if(p.isHoldingGold()){
-//                    if(p.isAdjacentTownHall()){
-//                        heuristic += 3;
-//                    } else if (p.isAdjacentGoldSource()){
-//                        heuristic += 2;
-//                    }
-//                } else if (p.isAdjacentGoldSource()){
-//                    heuristic += 1;
-//                }
-//            }
-//            if(townHall.requiredTotalWood-townHall.getCurrentWood() > 0){
-//                if(p.isHoldingWood()){
-//                    if(p.isAdjacentTownHall()){
-//                        heuristic += 3;
-//                    } else if (p.isHoldingWood()){
-//                        heuristic += 2;
-//                    }
-//                } else if (p.isAdjacentWoodSource()){
-//                    heuristic += 1;
-//                }
-//            }
-//        }
-////        if (buildPeasants) {
-////            heuristic += townhall.gold;
-////        }
-//        heuristic += townHall.getCurrentGold() + townHall.getCurrentWood();
         return heuristic;
     }
 
@@ -279,6 +238,20 @@ public class GameState implements Comparable<GameState> {
      */
     public double getCost() {
         return costToGetHere;
+    }
+
+    public void incrementCost(double incr){
+        costToGetHere += incr;
+    }
+
+    public void addAction(StripsAction action){
+        if(actions.size() == 0) {
+            List<StripsAction> actions = new ArrayList<>();
+            actions.add(action);
+            this.actions.add(actions);
+        } else {
+            actions.get(actions.size()-1).add(action);
+        }
     }
 
     /**

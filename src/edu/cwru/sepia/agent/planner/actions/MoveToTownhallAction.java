@@ -26,13 +26,13 @@ public class MoveToTownhallAction implements StripsAction {
 
     @Override
     public GameState apply(GameState state) {
-        state.peasants.get(peasantID).setAdjacentTownHall(true);
-        state.peasants.get(peasantID).setPosition(state.townHall.pos);
-        return state;
+        GameState clone = new GameState(state);
+        clone.peasants.get(peasantID).setAdjacentTownHall(true);
+        clone.peasants.get(peasantID).setPosition(clone.townHall.pos);
+        double cost = state.peasants.get(peasantID).getPosition().euclideanDistance(state.townHall.pos);
+        clone.incrementCost(cost);
+        clone.addAction(this);
+        return clone;
     }
 
-    @Override
-    public double getCost(GameState state) {
-        return state.peasants.get(peasantID).getPosition().euclideanDistance(state.townHall.pos);
-    }
 }

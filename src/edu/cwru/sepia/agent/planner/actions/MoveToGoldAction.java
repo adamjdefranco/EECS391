@@ -29,13 +29,12 @@ public class MoveToGoldAction implements StripsAction {
 
     @Override
     public GameState apply(GameState state) {
-        state.peasants.get(peasantID).setAdjacentGoldSource(true);
-        state.peasants.get(peasantID).setPosition(state.resources.get(resourceID).position);
-        return state;
-    }
-
-    @Override
-    public double getCost(GameState state) {
-        return state.peasants.get(peasantID).getPosition().euclideanDistance(state.resources.get(resourceID).position);
+        GameState clone = new GameState(state);
+        clone.peasants.get(peasantID).setAdjacentGoldSource(true);
+        clone.peasants.get(peasantID).setPosition(clone.resources.get(resourceID).position);
+        clone.addAction(this);
+        double cost = state.peasants.get(peasantID).getPosition().euclideanDistance(state.resources.get(resourceID).position);
+        clone.incrementCost(cost);
+        return clone;
     }
 }
