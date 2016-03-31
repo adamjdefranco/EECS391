@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
+import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.TownHall;
 
 /**
@@ -11,6 +12,7 @@ public class MoveToTownhallAction implements StripsAction {
 
     public final int peasantID;
     public final int townHallID;
+    private Position townHallPosition;
 
     public MoveToTownhallAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
@@ -33,10 +35,17 @@ public class MoveToTownhallAction implements StripsAction {
         GameState clone = new GameState(state);
         clone.peasants.get(peasantID).setAdjacentTownHall(true);
         clone.peasants.get(peasantID).setPosition(clone.townHall.pos, clone);
-        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(state.townHall.pos);
+        townHallPosition = state.townHall.pos;
+        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(townHallPosition);
         clone.incrementCost(cost);
         clone.addAction(this);
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return "Peasant with planning ID " + peasantID + " moved to town hall at position "
+                + townHallPosition + " with planning ID " + townHallID + ".";
     }
 
 }

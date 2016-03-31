@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
+import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.TownHall;
 
 /**
@@ -11,6 +12,7 @@ public class DepositGoldAction implements StripsAction {
 
     public final int peasantID;
     public final int townHallID;
+    private Position townHallPosition;
 
     public DepositGoldAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
@@ -32,6 +34,13 @@ public class DepositGoldAction implements StripsAction {
         clone.townHall.depositGold(100);
         clone.incrementCost(1);
         clone.addAction(this);
+        townHallPosition = clone.townHall.pos;
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return "Peasant with planning ID " + peasantID + " at location " + townHallPosition +
+                " deposited gold at town hall with planning ID " + townHallID + ".";
     }
 }

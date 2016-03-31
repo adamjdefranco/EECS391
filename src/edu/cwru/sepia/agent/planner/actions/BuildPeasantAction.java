@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
+import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.TownHall;
 
 /**
@@ -10,6 +11,8 @@ import edu.cwru.sepia.agent.planner.TownHall;
 public class BuildPeasantAction implements StripsAction {
 
     final int townhallID;
+    private int newPeasantID;
+    private Position townHallPosition;
 
     public BuildPeasantAction(TownHall townhall) {
         this.townhallID = townhall.id;
@@ -28,8 +31,15 @@ public class BuildPeasantAction implements StripsAction {
         clone.townHall.makePeasant();
         clone.addAction(this);
         clone.incrementCost(1);
-        int newPeasantID = clone.peasants.size()+1;
+        newPeasantID = clone.peasants.size()+1;
         clone.peasants.put(newPeasantID,new Peasant(newPeasantID, state.townHall.pos));
+        townHallPosition = clone.townHall.pos;
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return "Town hall with planning ID " + townhallID + " at position " + townHallPosition +
+                " spawned a new peasant with planning ID " + newPeasantID + ".";
     }
 }

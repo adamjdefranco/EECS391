@@ -1,9 +1,6 @@
 package edu.cwru.sepia.agent.planner.actions;
 
-import edu.cwru.sepia.agent.planner.GameState;
-import edu.cwru.sepia.agent.planner.Peasant;
-import edu.cwru.sepia.agent.planner.Resource;
-import edu.cwru.sepia.agent.planner.TownHall;
+import edu.cwru.sepia.agent.planner.*;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
 /**
@@ -13,6 +10,7 @@ public class PickupWoodAction implements StripsAction {
 
     public final int peasantID;
     public final int resourceID;
+    private Position woodPosition;
 
     public PickupWoodAction(Peasant peasant, Resource resource) {
         this.peasantID = peasant.id;
@@ -45,7 +43,14 @@ public class PickupWoodAction implements StripsAction {
         p.setHoldingWood(true);
         clone.incrementCost(1);
         clone.addAction(this);
+        woodPosition = r.position;
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return "Peasant with planning ID " + peasantID + " picked up wood at position "
+                + woodPosition + " with planning ID " + resourceID + ".";
     }
 
 }
