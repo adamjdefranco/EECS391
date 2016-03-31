@@ -31,7 +31,7 @@ public class GameState implements Comparable<GameState> {
     public Map<Integer, Peasant> peasants;
     public Map<Integer, Resource> resources;
     public List<List<StripsAction>> actions;
-    private int costToGetHere = 0;
+    private double costToGetHere = 0.0;
 
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
@@ -82,7 +82,7 @@ public class GameState implements Comparable<GameState> {
         this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
     }
 
-    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, int previousCost) {
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, double previousCost) {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.townHall = new TownHall(townHall);
@@ -192,24 +192,27 @@ public class GameState implements Comparable<GameState> {
 
         List<Peasant> holdingWoodPeasants = peasants.values().stream().filter(Peasant::isHoldingWood).collect(Collectors.toList());
         List<Peasant> holdingGoldPeasants = peasants.values().stream().filter(Peasant::isHoldingGold).collect(Collectors.toList());
+        for(Peasant p : holdingGoldPeasants){
+            heuristic += p.getPosition().euclideanDistance(townHall.pos)+1;
+        }
+        for(Peasant p : holdingWoodPeasants){
+            heuristic += p.getPosition().euclideanDistance(townHall.pos)+1;
+        }
 
-        holdingGoldPeasants.forEach(p->p.getPosition().euclideanDistance(townHall.pos));
-        holdingWoodPeasants.forEach(p->p.getPosition().euclideanDistance(townHall.pos));
-
-        int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood() - holdingWoodPeasants.size()*100;
-        int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold() - holdingGoldPeasants.size()*100;
+        int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood() - 100*holdingWoodPeasants.size();
+        int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold() - 100*holdingGoldPeasants.size();
 
         List<Resource> goldMines = resources.values().stream().filter(res-> res.type == ResourceNode.Type.GOLD_MINE && res.amountRemaining > 0).sorted((r1,r2)->Double.compare(r1.position.euclideanDistance(townHall.pos),r1.position.euclideanDistance(townHall.pos))).collect(Collectors.toList());
         List<Resource> trees = resources.values().stream().filter(res-> res.type == ResourceNode.Type.TREE && res.amountRemaining > 0).sorted((r1,r2)->Double.compare(r1.position.euclideanDistance(townHall.pos),r1.position.euclideanDistance(townHall.pos))).collect(Collectors.toList());
 
         while(remainingWood > 0){
             Resource tree = trees.get(0);
-            double distance = townHall.pos.euclideanDistance(tree.position);
+            double roundTrip = 2*townHall.pos.euclideanDistance(tree.position)+2;
             if(tree.amountRemaining > remainingWood){
-                heuristic += 2*distance*(Math.floor(remainingWood/100));
+                heuristic += roundTrip;
                 remainingWood = 0;
             } else {
-                heuristic += 2*distance*(Math.floor(tree.amountRemaining/100));
+                heuristic += roundTrip;
                 remainingWood -= tree.amountRemaining;
                 trees.remove(0);
             }
@@ -301,11 +304,14 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public int hashCode() {
-        int result = townHall.hashCode();
-        result = 31 * result + peasants.hashCode();
-        result = 31 * result + resources.hashCode();
-        result = 31 * result + actions.hashCode();
-        result = 31 * result + costToGetHere;
+        int result;
+        long temp;
+        result = townHall != null ? townHall.hashCode() : 0;
+        result = 31 * result + (peasants != null ? peasants.hashCode() : 0);
+        result = 31 * result + (resources != null ? resources.hashCode() : 0);
+        result = 31 * result + (actions != null ? actions.hashCode() : 0);
+        temp = Double.doubleToLongBits(costToGetHere);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }
 }
