@@ -195,53 +195,91 @@ public class GameState implements Comparable<GameState> {
         int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood();
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
 
-        List<Resource> goldMines = resources.values().stream()
-                //Filter so that only gold mines with resources left are included
-                .filter(res -> res.type == ResourceNode.Type.GOLD_MINE && res.amountRemaining > 0)
-                //Sort by distance to the town hall
-                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
-                .collect(Collectors.toList());
-        Resource nearestMine = goldMines.get(0);
+        int nonPriorityValue = 25;
+        int priorityValue = 50;
 
-        List<Resource> trees = resources.values().stream()
-                .filter(res -> res.type == ResourceNode.Type.TREE && res.amountRemaining > 0)
-                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
-                .collect(Collectors.toList());
-        Resource nearestTree = trees.get(0);
-
-        //Compute the round trip time total for each resource.
-        heuristic += Math.max(remainingGold,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestMine.position) + 2);
-        heuristic += Math.max(remainingWood,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestTree.position) + 2);
+        boolean prioritizeGold = townHall.getCurrentGold() - townHall.getCurrentWood() < 500;
 
         for(Peasant p : peasants.values()){
-            //Encourage anyone holding stuff to go turn it in.
-            if(p.isAdjacentTownHall()){
-                if(p.isHoldingGold()){
-                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
-                } else if (p.isHoldingWood()){
-                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
+            if(remainingGold > 0) {
+                if (p.isAdjacentGoldSource()) {
+                    heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                    if (p.isHoldingGold()) {
+                        heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                    }
                 }
             }
-            double treeDist = 0, mineDist = 0;
-            if(p.isAdjacentWoodSource()){
-                treeDist = townHall.pos.euclideanDistance(nearestTree.position);
+            if(remainingWood > 0) {
+                if (p.isAdjacentWoodSource()) {
+                    heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                    if (p.isHoldingWood()) {
+                        heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                    }
+                }
             }
-            if(p.isAdjacentGoldSource()){
-                mineDist = townHall.pos.euclideanDistance(nearestMine.position);
+            if(p.isAdjacentTownHall()){
+                if(p.isHoldingWood()){
+                    heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                } else if (p.isHoldingGold()){
+                    heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                }
             }
-            double nearestResourceDist = 0;
-            if(remainingGold > 0 && remainingWood > 0){
-                nearestResourceDist = Math.max(treeDist,mineDist);
-            } else if (remainingGold > 0){
-                nearestResourceDist = mineDist;
-            } else if (remainingWood > 0){
-                nearestResourceDist = treeDist;
-            }
-            heuristic -= nearestResourceDist;
         }
+
+        int totalRemainingResources = remainingGold + remainingWood;
+        heuristic -= totalRemainingResources / (peasants.size());
+
+//        List<Resource> goldMines = resources.values().stream()
+//                //Filter so that only gold mines with resources left are included
+//                .filter(res -> res.type == ResourceNode.Type.GOLD_MINE && res.amountRemaining > 0)
+//                //Sort by distance to the town hall
+//                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
+//                .collect(Collectors.toList());
+//        Resource nearestMine = goldMines.get(0);
+//
+//        List<Resource> trees = resources.values().stream()
+//                .filter(res -> res.type == ResourceNode.Type.TREE && res.amountRemaining > 0)
+//                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
+//                .collect(Collectors.toList());
+//        Resource nearestTree = trees.get(0);
+//
+//        //Compute the round trip time total for each resource.
+//        heuristic += Math.max(remainingGold,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestMine.position) + 2);
+//        heuristic += Math.max(remainingWood,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestTree.position) + 2);
+//
+//        for(Peasant p : peasants.values()){
+//            //Encourage anyone holding stuff to go turn it in.
+//            if(p.isAdjacentTownHall()){
+//                if(p.isHoldingGold()){
+//                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
+//                } else if (p.isHoldingWood()){
+//                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
+//                }
+//            }
+//            double treeDist = 0, mineDist = 0;
+//            if(p.isAdjacentWoodSource()){
+//                treeDist = townHall.pos.euclideanDistance(nearestTree.position);
+//            }
+//            if(p.isAdjacentGoldSource()){
+//                mineDist = townHall.pos.euclideanDistance(nearestMine.position);
+//            }
+//            double nearestResourceDist = 0;
+//            if(remainingGold > 0 && remainingWood > 0){
+//                nearestResourceDist = Math.max(treeDist,mineDist);
+//            } else if (remainingGold > 0){
+//                nearestResourceDist = mineDist;
+//            } else if (remainingWood > 0){
+//                nearestResourceDist = treeDist;
+//            }
+//            heuristic -= nearestResourceDist;
+//        }
 
         return heuristic;
 
+    }
+
+    public double queueVal(){
+        return getCost() + heuristic();
     }
 
     /**
@@ -271,7 +309,7 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public int compareTo(GameState o) {
-        return Double.compare(getCost() + heuristic(), o.getCost() + o.heuristic());
+        return Double.compare(heuristic()-getCost(),o.heuristic()- o.getCost());
     }
 
     /**
@@ -314,6 +352,6 @@ public class GameState implements Comparable<GameState> {
     @Override
     public String toString() {
         DecimalFormat df = new DecimalFormat("0.00");
-        return "GameState T: " + df.format(getCost() + heuristic()) + " C: " + df.format(getCost()) + " H: " + df.format(heuristic());
+        return "GameState Q: " + df.format(queueVal()) + " C: " + df.format(getCost()) + " H: " + df.format(heuristic());
     }
 }

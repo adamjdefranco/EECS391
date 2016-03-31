@@ -46,6 +46,10 @@ public class Peasant {
         this.holdingWood = holdingWood;
     }
 
+    public boolean isHoldingSomething(){
+        return isHoldingGold() || isHoldingWood();
+    }
+
     public Position getPosition() {
         return position;
     }
