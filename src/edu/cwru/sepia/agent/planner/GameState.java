@@ -114,6 +114,7 @@ public class GameState implements Comparable<GameState> {
      */
     public List<GameState> generateChildren() {
         List<GameState> gameStates = new ArrayList<>();
+        this.actions.add(new ArrayList<>());
         gameStates.add(this);
         return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
@@ -191,6 +192,8 @@ public class GameState implements Comparable<GameState> {
     public double heuristic() {
         double heuristic = 0;
 
+        return heuristic;
+        /*
         int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood();
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
 
@@ -209,24 +212,30 @@ public class GameState implements Comparable<GameState> {
         Resource nearestTree = trees.get(0);
 
         //Compute the round trip time total for each resource.
-        heuristic += 2*townHall.pos.euclideanDistance(nearestMine.position) + 2;
-        heuristic += 2*townHall.pos.euclideanDistance(nearestTree.position) + 2;
+        heuristic += Math.max(remainingGold,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestMine.position) + 2);
+        heuristic += Math.max(remainingWood,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestTree.position) + 2);
 
         for(Peasant p : peasants.values()){
             //Encourage anyone holding stuff to go turn it in.
             if(p.isAdjacentTownHall()){
                 if(p.isHoldingGold()){
-                    heuristic -= 1.8*p.getPosition().euclideanDistance(townHall.pos);
+                    heuristic -= 1.5*(p.getPosition().euclideanDistance(townHall.pos)+2);
                 } else if (p.isHoldingWood()){
-                    heuristic -= 1.8*p.getPosition().euclideanDistance(townHall.pos);
+                    heuristic -= 1.5*(p.getPosition().euclideanDistance(townHall.pos)+2);
                 }
             }
             double treeDist = 0, mineDist = 0;
             if(p.isAdjacentWoodSource()){
-                treeDist = p.getPosition().euclideanDistance(nearestTree.position);
+                treeDist = townHall.pos.euclideanDistance(nearestTree.position);
+                if(p.isHoldingWood()){
+                    treeDist += 1;
+                }
             }
             if(p.isAdjacentGoldSource()){
-                mineDist = p.getPosition().euclideanDistance(nearestMine.position);
+                mineDist = townHall.pos.euclideanDistance(nearestMine.position);
+                if(p.isHoldingGold()){
+                    mineDist += 1;
+                }
             }
             double nearestResourceDist = 0;
             if(remainingGold > 0 && remainingWood > 0){
@@ -240,6 +249,7 @@ public class GameState implements Comparable<GameState> {
         }
 
         return heuristic;
+        */
 //
 //        for(Peasant p : peasants.values()){
 //            //Get resource closest to peasant, and compute round trip to deposit it
@@ -430,10 +440,15 @@ public class GameState implements Comparable<GameState> {
         if (!peasants.equals(other.peasants)) {
             return false;
         }
-        if (other.getCost() != getCost()) {
-            return false;
-        }
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = townHall.hashCode();
+        result = 31 * result + peasants.hashCode();
+        result = 31 * result + resources.hashCode();
+        return result;
     }
 
     /**
@@ -442,18 +457,7 @@ public class GameState implements Comparable<GameState> {
      *
      * @return An integer hashcode that is equal for equal states.
      */
-    @Override
-    public int hashCode() {
-        int result;
-        long temp;
-        result = townHall != null ? townHall.hashCode() : 0;
-        result = 31 * result + (peasants != null ? peasants.hashCode() : 0);
-        result = 31 * result + (resources != null ? resources.hashCode() : 0);
-        result = 31 * result + (actions != null ? actions.hashCode() : 0);
-        temp = Double.doubleToLongBits(costToGetHere);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        return result;
-    }
+
 
     @Override
     public String toString() {

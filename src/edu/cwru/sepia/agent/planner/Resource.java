@@ -26,4 +26,26 @@ public class Resource {
         this.id = original.id;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Resource resource = (Resource) o;
+
+        if (id != resource.id) return false;
+        if (amountRemaining != resource.amountRemaining) return false;
+        if (!position.equals(resource.position)) return false;
+        return type == resource.type;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + position.hashCode();
+        result = 31 * result + amountRemaining;
+        result = 31 * result + type.hashCode();
+        return result;
+    }
 }
