@@ -36,5 +36,4 @@ public interface StripsAction {
 
     double getCost(GameState state);
 
-//    Action getSepiaAction();
 }

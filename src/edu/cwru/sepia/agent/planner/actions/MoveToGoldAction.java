@@ -11,8 +11,8 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class MoveToGoldAction implements StripsAction {
 
-    final int peasantID;
-    final int resourceID;
+    public final int peasantID;
+    public final int resourceID;
 
     public MoveToGoldAction(Peasant peasant, Resource goldResource) {
         this.peasantID = peasant.id;
@@ -30,6 +30,7 @@ public class MoveToGoldAction implements StripsAction {
     @Override
     public GameState apply(GameState state) {
         state.peasants.get(peasantID).setAdjacentGoldSource(true);
+        state.peasants.get(peasantID).setPosition(state.resources.get(resourceID).position);
         return state;
     }
 

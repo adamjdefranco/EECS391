@@ -9,8 +9,8 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class DepositGoldAction implements StripsAction {
 
-    final int peasantID;
-    final int townHallID;
+    public final int peasantID;
+    public final int townHallID;
 
     public DepositGoldAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
@@ -29,7 +29,6 @@ public class DepositGoldAction implements StripsAction {
     public GameState apply(GameState state) {
         state.peasants.get(peasantID).setHoldingGold(false);
         state.townHall.incrementGold(100);
-        // TODO: How do we update the gamestate to reflect this?
         return state;
     }
 

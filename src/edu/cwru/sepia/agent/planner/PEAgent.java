@@ -1,6 +1,8 @@
 package edu.cwru.sepia.agent.planner;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionFeedback;
+import edu.cwru.sepia.action.ActionResult;
 import edu.cwru.sepia.agent.Agent;
 import edu.cwru.sepia.agent.planner.actions.*;
 import edu.cwru.sepia.environment.model.history.History;
@@ -48,7 +50,7 @@ public class PEAgent extends Agent {
             if(unitType.equals("townhall")) {
                 townhallId = unitId;
             } else if(unitType.equals("peasant")) {
-                peasantIdMap.put(unitId, unitId);
+                peasantIdMap.put(peasantIdMap.size()+1, unitId);
             }
         }
 
@@ -94,9 +96,31 @@ public class PEAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-        StripsAction nextAction = plan.pop();
-//        if(nextAction.preconditionsMet(new GameState(stateView,playernum,)))
-        return null;
+        GameState currentState = new GameState(stateView,playernum,requiredGold,requiredWood,true);
+        if(!plan.isEmpty()){
+            StripsAction action = plan.pop();
+            if(action.preconditionsMet(currentState)){
+                Map<Integer,Action> potentialIssuedActions = createSepiaAction(action, stateView);
+                //Check command history to make sure unit's are ready to receive commands.
+                if(stateView.getTurnNumber() != 0){
+                    Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum,stateView.getTurnNumber()-1);
+                    if (potentialIssuedActions != null) {
+                        for(Integer unitID : potentialIssuedActions.keySet()){
+                            if(actionResults.get(unitID).getFeedback() != ActionFeedback.COMPLETED){
+                                System.err.println("Removing action from execution due to invalid previous execution.");
+                                potentialIssuedActions.remove(unitID);
+                            }
+                        }
+                    }
+                }
+                return potentialIssuedActions;
+            } else {
+                System.err.println("Something is wrong with the plan. Action: "+action.toString());
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -104,9 +128,49 @@ public class PEAgent extends Agent {
      * @param action StripsAction
      * @return SEPIA representation of same action
      */
-    private Action createSepiaAction(StripsAction action) {
-
-        return null;
+    private Map<Integer,Action> createSepiaAction(StripsAction action, State.StateView state) {
+        Map<Integer,Action> actions = new HashMap<>();
+        if(action instanceof MoveToGoldAction) {
+            int actualID = ((MoveToGoldAction)action).peasantID;
+            Position resourcePos =  Position.forResource(state.getResourceNode(((MoveToGoldAction)action).resourceID));
+            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
+            actions.put(actualID,a);
+        } else if (action instanceof MoveToWoodAction){
+            int actualID = ((MoveToWoodAction)action).peasantID;
+            Position resourcePos =  Position.forResource(state.getResourceNode(((MoveToWoodAction)action).resourceID));
+            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
+            actions.put(actualID,a);
+        } else if (action instanceof  MoveToTownhallAction){
+            int actualID = ((MoveToTownhallAction)action).peasantID;
+            Position resourcePos =  Position.forUnit(state.getUnit(((MoveToTownhallAction)action).townHallID));
+            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
+            actions.put(actualID,a);
+        } else if (action instanceof DepositGoldAction){
+            int actualID = ((DepositGoldAction)action).peasantID;
+            Position peasantPosition = Position.forUnit(state.getUnit(actualID));
+            Position townHallPos =  Position.forUnit(state.getUnit(((DepositGoldAction)action).townHallID));
+            Action a = Action.createPrimitiveDeposit(actualID,peasantPosition.getDirection(townHallPos));
+            actions.put(actualID,a);
+        } else if (action instanceof DepositWoodAction){
+            int actualID = ((DepositWoodAction)action).peasantID;
+            Position peasantPosition = Position.forUnit(state.getUnit(actualID));
+            Position townHallPos =  Position.forUnit(state.getUnit(((DepositWoodAction)action).townHallID));
+            Action a = Action.createPrimitiveDeposit(actualID,peasantPosition.getDirection(townHallPos));
+            actions.put(actualID,a);
+        } else if (action instanceof PickupWoodAction){
+            int actualID = ((PickupWoodAction)action).peasantID;
+            Position peasantPosition = Position.forUnit(state.getUnit(actualID));
+            Position resourceLocation =  Position.forResource(state.getResourceNode(((PickupWoodAction)action).resourceID));
+            Action a = Action.createPrimitiveGather(actualID,peasantPosition.getDirection(resourceLocation));
+            actions.put(actualID,a);
+        } else if (action instanceof PickupGoldAction) {
+            int actualID = ((PickupGoldAction)action).peasantID;
+            Position peasantPosition = Position.forUnit(state.getUnit(actualID));
+            Position resourceLocation =  Position.forResource(state.getResourceNode(((PickupGoldAction)action).resourceID));
+            Action a = Action.createPrimitiveGather(actualID,peasantPosition.getDirection(resourceLocation));
+            actions.put(actualID,a);
+        }
+        return actions;
     }
 
     @Override

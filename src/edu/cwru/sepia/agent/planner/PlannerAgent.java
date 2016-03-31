@@ -91,26 +91,48 @@ public class PlannerAgent extends Agent {
      * @return The plan or null if no plan is found.
      */
     private Stack<StripsAction> AstarSearch(GameState startState) {
-
-//        PriorityQueue<GameState> stateQueue = new PriorityQueue<>((Comparator<GameState>) (o1, o2) -> );
-//        stateQueue.add(startState);
-//        GameState currentState;
-//        do {
-//            currentState = stateQueue.poll();
-//
-//            if (currentState.isGoal()) {
-//                break;
-//            }
-//            stateQueue.addAll(startState.generateChildren());
-//        } while (!stateQueue.isEmpty());
-//        if(currentState.isGoal()){
-//            while(!currentState.equals(startState)){
-//
-//            }
-//        } else {
+        System.out.println("Starting A* Plan Search.");
+        PriorityQueue<GameState> stateQueue = new PriorityQueue<>();
+        Set<GameState> closedSet = new HashSet<>();
+        stateQueue.add(startState);
+        GameState goalState = null;
+        int iteration = 0;
+        while(!stateQueue.isEmpty()){
+            iteration++;
+            GameState state = stateQueue.poll();
+            closedSet.add(state);
+            if(state.townHall.getCurrentGold() > 0 || state.townHall.getCurrentWood() > 0){
+                System.out.println("Well we picked something up...");
+            }
+            if(state.isGoal()){
+                System.out.println("Found goal state. Exiting A* Plan Search.");
+                goalState = state;
+                break;
+            } else {
+                List<GameState> children = state.generateChildren();
+                for(GameState child : children){
+                    if(!closedSet.contains(child)){
+                        stateQueue.add(child);
+                    }
+                }
+            }
+        }
+        if(goalState == null){
             return null;
-//        }
-
+        } else {
+            Stack<StripsAction> plan = new Stack<>();
+            List<List<StripsAction>> actionsForState = goalState.actions;
+            Collections.reverse(actionsForState);
+            for(List<StripsAction> actions : actionsForState){
+                if(actions.size() > 1){
+                    //Combine actions here
+                } else if (actions.size() == 1){
+                    plan.push(actions.get(0));
+                }
+            }
+            System.out.println("Created plan.");
+            return plan;
+        }
     }
 
     /**

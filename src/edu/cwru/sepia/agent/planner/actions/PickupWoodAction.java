@@ -11,8 +11,8 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class PickupWoodAction implements StripsAction {
 
-    final int peasantID;
-    final int resourceID;
+    public final int peasantID;
+    public final int resourceID;
 
     public PickupWoodAction(Peasant peasant, Resource resource) {
         this.peasantID = peasant.id;
@@ -25,8 +25,8 @@ public class PickupWoodAction implements StripsAction {
         return state.peasants.containsKey(peasantID)
                 && state.resources.containsKey(resourceID)
                 && state.resources.get(resourceID).type == ResourceNode.Type.TREE
-                && !(p.isHoldingGold())
-                && p.isAdjacentGoldSource();
+                && !(p.isHoldingWood())
+                && p.isAdjacentWoodSource();
     }
 
     @Override

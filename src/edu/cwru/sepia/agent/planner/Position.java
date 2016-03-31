@@ -109,13 +109,13 @@ public class Position {
 
     /**
      * True if the specified position can be reached in exactly one step. Does not check if the position
-     * is in bounds. Will not return true if the positions are the same.
+     * is in bounds.
      *
      * @param position Position to check for adjacency
-     * @return true if adjacent, false otherwise. false if the positions are the same.
+     * @return true if adjacent, false otherwise.
      */
     public boolean isAdjacent(Position position) {
-        return Math.abs(x - position.x) == 1 || Math.abs(y - position.y) == 1;
+        return Math.abs(x - position.x) <= 1 && Math.abs(y - position.y) <= 1;
     }
 
     /**

@@ -11,8 +11,8 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class PickupGoldAction implements StripsAction {
 
-    final int peasantID;
-    final int resourceID;
+    public final int peasantID;
+    public final int resourceID;
 
     public PickupGoldAction(Peasant peasant, Resource resource) {
         this.peasantID = peasant.id;

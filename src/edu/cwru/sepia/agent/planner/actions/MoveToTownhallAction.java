@@ -9,8 +9,8 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class MoveToTownhallAction implements StripsAction {
 
-    final int peasantID;
-    final int townHallID;
+    public final int peasantID;
+    public final int townHallID;
 
     public MoveToTownhallAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
@@ -27,6 +27,7 @@ public class MoveToTownhallAction implements StripsAction {
     @Override
     public GameState apply(GameState state) {
         state.peasants.get(peasantID).setAdjacentTownHall(true);
+        state.peasants.get(peasantID).setPosition(state.townHall.pos);
         return state;
     }
 

@@ -9,8 +9,8 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class DepositWoodAction implements StripsAction {
 
-    final int peasantID;
-    final int townHallID;
+    public final int peasantID;
+    public final int townHallID;
 
     public DepositWoodAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
