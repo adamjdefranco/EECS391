@@ -4,6 +4,7 @@ import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.Agent;
 import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.history.History;
+import edu.cwru.sepia.environment.model.state.ResourceNode;
 import edu.cwru.sepia.environment.model.state.State;
 
 import java.io.*;
@@ -91,46 +92,41 @@ public class PlannerAgent extends Agent {
      * @return The plan or null if no plan is found.
      */
     private Stack<StripsAction> AstarSearch(GameState startState) {
+        System.out.println(startState.resources.values().stream().filter(r -> r.type == ResourceNode.Type.GOLD_MINE).map(r -> r.amountRemaining).reduce((a, b) -> a + b).get());
         System.out.println("Starting A* Plan Search.");
         PriorityQueue<GameState> stateQueue = new PriorityQueue<>();
         Set<GameState> closedSet = new HashSet<>();
         stateQueue.add(startState);
         GameState goalState = null;
         int iteration = 0;
-        while(!stateQueue.isEmpty()){
+        while (!stateQueue.isEmpty()) {
             iteration++;
             GameState state = stateQueue.poll();
             closedSet.add(state);
-            if(state.townHall.getCurrentGold() > 0 || state.townHall.getCurrentWood() > 0){
-                System.out.println("Well we picked something up... "+state.townHall.getCurrentGold() + " "+state.townHall.getCurrentWood());
+            if (state.townHall.getCurrentWood() > 0) {
+                System.out.println("Well we picked up wood... " + state.townHall.getCurrentGold() + " " + state.townHall.getCurrentWood());
             }
-            if(state.isGoal()){
+            if (state.isGoal()) {
                 System.out.println("Found goal state. Exiting A* Plan Search.");
                 goalState = state;
                 break;
             } else {
                 List<GameState> children = state.generateChildren();
-                for(GameState child : children){
-                    if(!closedSet.contains(child)){
+                for (GameState child : children) {
+                    if (!closedSet.contains(child)) {
                         stateQueue.add(child);
-                    } else {
-                        System.out.println("Ignoring node because it's in the closed set.");
                     }
                 }
             }
         }
-        if(goalState == null){
+        if (goalState == null) {
             return null;
         } else {
             Stack<StripsAction> plan = new Stack<>();
-            List<List<StripsAction>> actionsForState = goalState.actions;
+            List<StripsAction> actionsForState = goalState.actions;
             Collections.reverse(actionsForState);
-            for(List<StripsAction> actions : actionsForState){
-                if(actions.size() > 1){
-                    //Combine actions here
-                } else if (actions.size() == 1){
-                    plan.push(actions.get(0));
-                }
+            for (StripsAction action : actionsForState) {
+                plan.push(action);
             }
             System.out.println("Created plan.");
             return plan;

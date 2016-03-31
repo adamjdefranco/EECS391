@@ -32,13 +32,16 @@ public class PickupWoodAction implements StripsAction {
         return r.type == ResourceNode.Type.TREE
                 && !(p.isHoldingWood())
                 && !(p.isHoldingGold())
-                && p.getPosition().isAdjacent(r.position);
+                && p.getPosition().isAdjacent(r.position)
+                && r.getAmountRemaining() >= 100;
     }
 
     @Override
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);
         Peasant p = clone.peasants.get(peasantID);
+        Resource r = clone.resources.get(resourceID);
+        r.takeResource(100);
         p.setHoldingWood(true);
         clone.incrementCost(1);
         clone.addAction(this);

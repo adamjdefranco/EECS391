@@ -31,7 +31,7 @@ public class GameState implements Comparable<GameState> {
     public TownHall townHall;
     public Map<Integer, Peasant> peasants;
     public Map<Integer, Resource> resources;
-    public List<List<StripsAction>> actions;
+    public List<StripsAction> actions;
     private double costToGetHere = 0.0;
 
     /**
@@ -83,15 +83,11 @@ public class GameState implements Comparable<GameState> {
         this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
     }
 
-    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, double previousCost) {
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<StripsAction> actions, double previousCost) {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.townHall = new TownHall(townHall);
-        this.actions = new ArrayList<>(actions.size());
-        for (List<StripsAction> lst : actions) {
-            List<StripsAction> newList = new ArrayList<>(lst);
-            this.actions.add(newList);
-        }
+        this.actions = new ArrayList<>(actions);
         this.costToGetHere = previousCost;
     }
 
@@ -114,7 +110,6 @@ public class GameState implements Comparable<GameState> {
      */
     public List<GameState> generateChildren() {
         List<GameState> gameStates = new ArrayList<>();
-        this.actions.add(new ArrayList<>());
         gameStates.add(this);
         return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
@@ -329,13 +324,10 @@ public class GameState implements Comparable<GameState> {
 //        }
 
 
-
         //At this point:
         //All peasants have returned to the town hall and will need to go elsewhere.
         //Figure out the most optimal routing for them to get to the goal.
         //Prioritize Gold (should enable parallelism later on)
-
-
 
 
 //        List<Peasant> holdingWoodPeasants = peasants.values().stream().filter(Peasant::isHoldingWood).collect(Collectors.toList());
@@ -398,13 +390,7 @@ public class GameState implements Comparable<GameState> {
     }
 
     public void addAction(StripsAction action) {
-        if (actions.size() == 0) {
-            List<StripsAction> actions = new ArrayList<>();
-            actions.add(action);
-            this.actions.add(actions);
-        } else {
-            actions.get(actions.size() - 1).add(action);
-        }
+        actions.add(action);
     }
 
     /**
@@ -443,6 +429,12 @@ public class GameState implements Comparable<GameState> {
         return true;
     }
 
+    /**
+     * This is necessary to use the GameState as a key in a HashSet or HashMap. Remember that if two objects are
+     * equal they should hash to the same value.
+     *
+     * @return An integer hashcode that is equal for equal states.
+     */
     @Override
     public int hashCode() {
         int result = townHall.hashCode();
@@ -451,17 +443,13 @@ public class GameState implements Comparable<GameState> {
         return result;
     }
 
-    /**
-     * This is necessary to use the GameState as a key in a HashSet or HashMap. Remember that if two objects are
-     * equal they should hash to the same value.
-     *
-     * @return An integer hashcode that is equal for equal states.
-     */
-
+    public GameState apply(StripsAction action){
+        return action.apply(this);
+    }
 
     @Override
     public String toString() {
-        DecimalFormat df = new DecimalFormat("#.00");
-        return "GameState T: " + df.format(getCost() + heuristic()) + "C:" + df.format(getCost()) + "H:" + df.format(heuristic());
+        DecimalFormat df = new DecimalFormat("0.00");
+        return "GameState T: " + df.format(getCost() + heuristic()) + " C: " + df.format(getCost()) + " H: " + df.format(heuristic());
     }
 }

@@ -1,5 +1,6 @@
 package edu.cwru.sepia.agent.planner;
 
+import com.sun.javaws.exceptions.InvalidArgumentException;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
 /**
@@ -9,7 +10,7 @@ public class Resource {
 
     public final int id;
     public final Position position;
-    int amountRemaining;
+    protected int amountRemaining;
     public final ResourceNode.Type type;
 
     public Resource(int id, Position position, int amountRemaining, ResourceNode.Type type) {
@@ -47,5 +48,17 @@ public class Resource {
         result = 31 * result + amountRemaining;
         result = 31 * result + type.hashCode();
         return result;
+    }
+
+    public void takeResource(int amount){
+        if(amount > amountRemaining){
+            throw new IllegalArgumentException("amount");
+        } else {
+            amountRemaining -= amount;
+        }
+    }
+
+    public int getAmountRemaining() {
+        return amountRemaining;
     }
 }
