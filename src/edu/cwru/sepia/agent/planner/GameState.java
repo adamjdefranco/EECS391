@@ -34,7 +34,8 @@ public class GameState implements Comparable<GameState> {
     public Map<Integer, Resource> resources;
     public List<StripsAction> actions;
     private double costToGetHere = 0.0;
-
+    private int populationCap;
+    private int population;
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
      * nodes should be constructed from the another constructor you create or by factory functions that you create.
@@ -48,6 +49,8 @@ public class GameState implements Comparable<GameState> {
     public GameState(State.StateView state, int playernum, int requiredGold, int requiredWood, boolean buildPeasants) {
         peasants = new HashMap<>();
         actions = new ArrayList<>();
+        populationCap = state.getSupplyCap(playernum);
+        population = state.getSupplyAmount(playernum);
         resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c -> new Resource(c.getID(), Position.forResource(c), c.getAmountRemaining(), c.getType())));
         for (Unit.UnitView unit : state.getUnitIds(playernum).stream().map(state::getUnit).collect(Collectors.toList())) {
             String unitType = unit.getTemplateView().getName().toLowerCase();
@@ -85,10 +88,10 @@ public class GameState implements Comparable<GameState> {
     }
 
     public GameState(GameState old) {
-        this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
+        this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere, old.population, old.populationCap);
     }
 
-    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<StripsAction> actions, double previousCost) {
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<StripsAction> actions, double previousCost, int population, int populationCap) {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.townHall = new TownHall(townHall);
@@ -105,6 +108,14 @@ public class GameState implements Comparable<GameState> {
      */
     public boolean isGoal() {
         return townHall.getCurrentGold() >= townHall.requiredTotalGold && townHall.getCurrentWood() >= townHall.requiredTotalWood;
+    }
+
+    public int getPopulationCap() {
+        return populationCap;
+    }
+
+    public int getPopulation() {
+        return population;
     }
 
     /**

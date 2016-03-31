@@ -29,7 +29,7 @@ public class DepositWoodAction implements StripsAction {
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);
         clone.peasants.get(peasantID).setHoldingWood(false);
-        clone.townHall.incrementWood(100);
+        clone.townHall.depositWood(100);
         clone.incrementCost(1);
         clone.addAction(this);
         return clone;

@@ -35,12 +35,12 @@ public class TownHall {
 
     public boolean canBuildPeasants(){
         //TODO modify this so that this will return true when the town hall can build a peasant.
-        return allowedToBuildPeasants && true;
+        return allowedToBuildPeasants && this.currentGold >= 400;
     }
 
-    public void incrementGold(int amountOfGold) { this.currentGold += amountOfGold; }
+    public void depositGold(int amountOfGold) { this.currentGold += amountOfGold; }
 
-    public void incrementWood(int amountOfWood) { this.currentWood += amountOfWood; }
+    public void depositWood(int amountOfWood) { this.currentWood += amountOfWood; }
 
     public int getCurrentGold() {
         return currentGold;
@@ -48,6 +48,14 @@ public class TownHall {
 
     public int getCurrentWood() {
         return currentWood;
+    }
+
+    public void makePeasant(){
+        if(this.currentGold < 400){
+            throw new IllegalArgumentException("gold");
+        } else {
+            this.currentGold -= 400;
+        }
     }
 
     @Override
