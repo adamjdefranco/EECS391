@@ -48,8 +48,8 @@ public class MoveToGoldAction implements StripsAction {
 
     @Override
     public String toString() {
-        return "Peasant with planning ID " + peasantID + " moved to gold at position " +
-                goldPosition + " with planning ID " + resourceID + ".";
+        return "Peasant with planning ID " + peasantID + " moved to gold with planning ID "
+                + resourceID + " and position " + goldPosition + ".";
     }
 
 }

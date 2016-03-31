@@ -44,8 +44,8 @@ public class MoveToTownhallAction implements StripsAction {
 
     @Override
     public String toString() {
-        return "Peasant with planning ID " + peasantID + " moved to town hall at position "
-                + townHallPosition + " with planning ID " + townHallID + ".";
+        return "Peasant with planning ID " + peasantID + " moved to town hall with planning ID "
+                + townHallID + " and position " + townHallPosition + ".";
     }
 
 }

@@ -40,7 +40,7 @@ public class DepositGoldAction implements StripsAction {
 
     @Override
     public String toString() {
-        return "Peasant with planning ID " + peasantID + " at location " + townHallPosition +
-                " deposited gold at town hall with planning ID " + townHallID + ".";
+        return "Peasant with planning ID " + peasantID + " deposited gold at town hall with planning ID "
+                + townHallID + " and position " + townHallPosition + ".";
     }
 }

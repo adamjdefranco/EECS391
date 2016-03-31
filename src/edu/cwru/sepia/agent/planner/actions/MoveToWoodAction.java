@@ -48,8 +48,8 @@ public class MoveToWoodAction implements StripsAction {
 
     @Override
     public String toString() {
-        return "Peasant with planning ID " + peasantID + " moved to wood at position "
-                + woodLocation + " with planning ID " + resourceID + ".";
+        return "Peasant with planning ID " + peasantID + " moved to wood with planning ID "
+                + resourceID + " and location " + woodLocation + ".";
     }
 
 }

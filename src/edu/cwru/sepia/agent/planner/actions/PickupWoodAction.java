@@ -49,8 +49,8 @@ public class PickupWoodAction implements StripsAction {
 
     @Override
     public String toString() {
-        return "Peasant with planning ID " + peasantID + " picked up wood at position "
-                + woodPosition + " with planning ID " + resourceID + ".";
+        return "Peasant with planning ID " + peasantID + " picked up wood with planning ID "
+                + resourceID + " and position " + woodPosition + ".";
     }
 
 }
