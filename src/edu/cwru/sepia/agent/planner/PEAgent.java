@@ -44,19 +44,19 @@ public class PEAgent extends Agent {
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
         // gets the townhall ID and the peasant ID
-        for(int unitId : stateView.getUnitIds(playernum)) {
+        for (int unitId : stateView.getUnitIds(playernum)) {
             Unit.UnitView unit = stateView.getUnit(unitId);
             String unitType = unit.getTemplateView().getName().toLowerCase();
-            if(unitType.equals("townhall")) {
+            if (unitType.equals("townhall")) {
                 townhallId = unitId;
-            } else if(unitType.equals("peasant")) {
-                peasantIdMap.put(peasantIdMap.size()+1, unitId);
+            } else if (unitType.equals("peasant")) {
+                peasantIdMap.put(peasantIdMap.size() + 1, unitId);
             }
         }
 
         // Gets the peasant template ID. This is used when building a new peasant with the townhall
-        for(Template.TemplateView templateView : stateView.getTemplates(playernum)) {
-            if(templateView.getName().toLowerCase().equals("peasant")) {
+        for (Template.TemplateView templateView : stateView.getTemplates(playernum)) {
+            if (templateView.getName().toLowerCase().equals("peasant")) {
                 peasantTemplateId = templateView.getID();
                 break;
             }
@@ -69,53 +69,51 @@ public class PEAgent extends Agent {
      * This is where you will read the provided plan and execute it. If your plan is correct then when the plan is empty
      * the scenario should end with a victory. If the scenario keeps running after you run out of actions to execute
      * then either your plan is incorrect or your execution of the plan has a bug.
-     *
+     * <p>
      * You can create a SEPIA deposit action with the following method
      * Action.createPrimitiveDeposit(int peasantId, Direction townhallDirection)
-     *
+     * <p>
      * You can create a SEPIA harvest action with the following method
      * Action.createPrimitiveGather(int peasantId, Direction resourceDirection)
-     *
+     * <p>
      * You can create a SEPIA build action with the following method
      * Action.createPrimitiveProduction(int townhallId, int peasantTemplateId)
-     *
+     * <p>
      * You can create a SEPIA move action with the following method
      * Action.createCompoundMove(int peasantId, int x, int y)
-     *
+     * <p>
      * these actions are stored in a mapping between the peasant unit ID executing the action and the action you created.
-     *
+     * <p>
      * For the compound actions you will need to check their progress and wait until they are complete before issuing
      * another action for that unit. If you issue an action before the compound action is complete then the peasant
      * will stop what it was doing and begin executing the new action.
-     *
+     * <p>
      * To check an action's progress you can call getCurrentDurativeAction on each UnitView. If the Action is null nothing
      * is being executed. If the action is not null then you should also call getCurrentDurativeProgress. If the value is less than
      * 1 then the action is still in progress.
-     *
+     * <p>
      * Also remember to check your plan's preconditions before executing!
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
-        GameState currentState = new GameState(stateView,playernum,requiredGold,requiredWood,true);
-        if(!plan.isEmpty()){
-            StripsAction action = plan.pop();
-            if(action.preconditionsMet(currentState)){
-                Map<Integer,Action> potentialIssuedActions = createSepiaAction(action, stateView);
-                //Check command history to make sure unit's are ready to receive commands.
-                if(stateView.getTurnNumber() != 0){
-                    Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum,stateView.getTurnNumber()-1);
-                    if (potentialIssuedActions != null) {
-                        for(Integer unitID : potentialIssuedActions.keySet()){
-                            if(actionResults.get(unitID).getFeedback() != ActionFeedback.COMPLETED){
-                                System.err.println("Removing action from execution due to invalid previous execution.");
-                                potentialIssuedActions.remove(unitID);
-                            }
-                        }
-                    }
+        GameState currentState = new GameState(stateView, playernum, requiredGold, requiredWood, true);
+        System.out.println("Executing Middle Step for turn number: " + stateView.getTurnNumber());
+        if (stateView.getTurnNumber() != 0) {
+            Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, stateView.getTurnNumber() - 1);
+            for(Integer unitID : peasantIdMap.values()) {
+                if (actionResults.get(unitID).getFeedback() != ActionFeedback.COMPLETED) {
+                    return null;
                 }
+            }
+        }
+        if (!plan.isEmpty()) {
+            StripsAction action = plan.pop();
+            if (action.preconditionsMet(currentState)) {
+                Map<Integer, Action> potentialIssuedActions = createSepiaAction(action, stateView);
+                //Check command history to make sure unit's are ready to receive commands.
                 return potentialIssuedActions;
             } else {
-                System.err.println("Something is wrong with the plan. Action: "+action.toString());
+                System.err.println("Something is wrong with the plan. Action: " + action.toString());
                 return null;
             }
         } else {
@@ -125,50 +123,51 @@ public class PEAgent extends Agent {
 
     /**
      * Returns a SEPIA version of the specified Strips Action.
+     *
      * @param action StripsAction
      * @return SEPIA representation of same action
      */
-    private Map<Integer,Action> createSepiaAction(StripsAction action, State.StateView state) {
-        Map<Integer,Action> actions = new HashMap<>();
-        if(action instanceof MoveToGoldAction) {
-            int actualID = ((MoveToGoldAction)action).peasantID;
-            Position resourcePos =  Position.forResource(state.getResourceNode(((MoveToGoldAction)action).resourceID));
-            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
-            actions.put(actualID,a);
-        } else if (action instanceof MoveToWoodAction){
-            int actualID = ((MoveToWoodAction)action).peasantID;
-            Position resourcePos =  Position.forResource(state.getResourceNode(((MoveToWoodAction)action).resourceID));
-            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
-            actions.put(actualID,a);
-        } else if (action instanceof  MoveToTownhallAction){
-            int actualID = ((MoveToTownhallAction)action).peasantID;
-            Position resourcePos =  Position.forUnit(state.getUnit(((MoveToTownhallAction)action).townHallID));
-            Action a = Action.createCompoundMove(actualID,resourcePos.x,resourcePos.y);
-            actions.put(actualID,a);
-        } else if (action instanceof DepositGoldAction){
-            int actualID = ((DepositGoldAction)action).peasantID;
+    private Map<Integer, Action> createSepiaAction(StripsAction action, State.StateView state) {
+        Map<Integer, Action> actions = new HashMap<>();
+        if (action instanceof MoveToGoldAction) {
+            int actualID = ((MoveToGoldAction) action).peasantID;
+            Position resourcePos = Position.forResource(state.getResourceNode(((MoveToGoldAction) action).resourceID));
+            Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
+            actions.put(actualID, a);
+        } else if (action instanceof MoveToWoodAction) {
+            int actualID = ((MoveToWoodAction) action).peasantID;
+            Position resourcePos = Position.forResource(state.getResourceNode(((MoveToWoodAction) action).resourceID));
+            Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
+            actions.put(actualID, a);
+        } else if (action instanceof MoveToTownhallAction) {
+            int actualID = ((MoveToTownhallAction) action).peasantID;
+            Position resourcePos = Position.forUnit(state.getUnit(((MoveToTownhallAction) action).townHallID));
+            Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
+            actions.put(actualID, a);
+        } else if (action instanceof DepositGoldAction) {
+            int actualID = ((DepositGoldAction) action).peasantID;
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
-            Position townHallPos =  Position.forUnit(state.getUnit(((DepositGoldAction)action).townHallID));
-            Action a = Action.createPrimitiveDeposit(actualID,peasantPosition.getDirection(townHallPos));
-            actions.put(actualID,a);
-        } else if (action instanceof DepositWoodAction){
-            int actualID = ((DepositWoodAction)action).peasantID;
+            Position townHallPos = Position.forUnit(state.getUnit(((DepositGoldAction) action).townHallID));
+            Action a = Action.createPrimitiveDeposit(actualID, peasantPosition.getDirection(townHallPos));
+            actions.put(actualID, a);
+        } else if (action instanceof DepositWoodAction) {
+            int actualID = ((DepositWoodAction) action).peasantID;
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
-            Position townHallPos =  Position.forUnit(state.getUnit(((DepositWoodAction)action).townHallID));
-            Action a = Action.createPrimitiveDeposit(actualID,peasantPosition.getDirection(townHallPos));
-            actions.put(actualID,a);
-        } else if (action instanceof PickupWoodAction){
-            int actualID = ((PickupWoodAction)action).peasantID;
+            Position townHallPos = Position.forUnit(state.getUnit(((DepositWoodAction) action).townHallID));
+            Action a = Action.createPrimitiveDeposit(actualID, peasantPosition.getDirection(townHallPos));
+            actions.put(actualID, a);
+        } else if (action instanceof PickupWoodAction) {
+            int actualID = ((PickupWoodAction) action).peasantID;
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
-            Position resourceLocation =  Position.forResource(state.getResourceNode(((PickupWoodAction)action).resourceID));
-            Action a = Action.createPrimitiveGather(actualID,peasantPosition.getDirection(resourceLocation));
-            actions.put(actualID,a);
+            Position resourceLocation = Position.forResource(state.getResourceNode(((PickupWoodAction) action).resourceID));
+            Action a = Action.createPrimitiveGather(actualID, peasantPosition.getDirection(resourceLocation));
+            actions.put(actualID, a);
         } else if (action instanceof PickupGoldAction) {
-            int actualID = ((PickupGoldAction)action).peasantID;
+            int actualID = ((PickupGoldAction) action).peasantID;
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
-            Position resourceLocation =  Position.forResource(state.getResourceNode(((PickupGoldAction)action).resourceID));
-            Action a = Action.createPrimitiveGather(actualID,peasantPosition.getDirection(resourceLocation));
-            actions.put(actualID,a);
+            Position resourceLocation = Position.forResource(state.getResourceNode(((PickupGoldAction) action).resourceID));
+            Action a = Action.createPrimitiveGather(actualID, peasantPosition.getDirection(resourceLocation));
+            actions.put(actualID, a);
         }
         return actions;
     }

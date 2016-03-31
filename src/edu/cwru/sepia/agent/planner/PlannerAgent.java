@@ -92,20 +92,14 @@ public class PlannerAgent extends Agent {
      * @return The plan or null if no plan is found.
      */
     private Stack<StripsAction> AstarSearch(GameState startState) {
-        System.out.println(startState.resources.values().stream().filter(r -> r.type == ResourceNode.Type.GOLD_MINE).map(r -> r.amountRemaining).reduce((a, b) -> a + b).get());
         System.out.println("Starting A* Plan Search.");
         PriorityQueue<GameState> stateQueue = new PriorityQueue<>();
         Set<GameState> closedSet = new HashSet<>();
         stateQueue.add(startState);
         GameState goalState = null;
-        int iteration = 0;
         while (!stateQueue.isEmpty()) {
-            iteration++;
             GameState state = stateQueue.poll();
             closedSet.add(state);
-            if (state.townHall.getCurrentWood() > 0) {
-                System.out.println("Well we picked up wood... " + state.townHall.getCurrentGold() + " " + state.townHall.getCurrentWood());
-            }
             if (state.isGoal()) {
                 System.out.println("Found goal state. Exiting A* Plan Search.");
                 goalState = state;

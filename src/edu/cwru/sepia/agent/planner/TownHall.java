@@ -40,7 +40,7 @@ public class TownHall {
 
     public void incrementGold(int amountOfGold) { this.currentGold += amountOfGold; }
 
-    public void incrementWood(int amountOfWood) { this.currentGold += amountOfWood; }
+    public void incrementWood(int amountOfWood) { this.currentWood += amountOfWood; }
 
     public int getCurrentGold() {
         return currentGold;

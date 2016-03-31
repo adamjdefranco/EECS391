@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner;
 
 import edu.cwru.sepia.agent.planner.actions.*;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
+import edu.cwru.sepia.environment.model.state.ResourceType;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 
@@ -74,6 +75,10 @@ public class GameState implements Comparable<GameState> {
                     if (resource.type == ResourceNode.Type.TREE && !p.isAdjacentWoodSource() && p.getPosition().isAdjacent(resource.position)) {
                         p.setAdjacentWoodSource(true);
                     }
+                }
+                if(unit.getCargoAmount() > 0){
+                    p.setHoldingGold(unit.getCargoType() == ResourceType.GOLD);
+                    p.setHoldingWood(unit.getCargoType() == ResourceType.WOOD);
                 }
             }
         }
