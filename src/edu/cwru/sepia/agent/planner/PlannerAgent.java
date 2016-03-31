@@ -102,7 +102,7 @@ public class PlannerAgent extends Agent {
             GameState state = stateQueue.poll();
             closedSet.add(state);
             if(state.townHall.getCurrentGold() > 0 || state.townHall.getCurrentWood() > 0){
-                System.out.println("Well we picked something up...");
+                System.out.println("Well we picked something up... "+state.townHall.getCurrentGold() + " "+state.townHall.getCurrentWood());
             }
             if(state.isGoal()){
                 System.out.println("Found goal state. Exiting A* Plan Search.");

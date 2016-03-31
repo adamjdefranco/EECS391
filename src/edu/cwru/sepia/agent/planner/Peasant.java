@@ -50,8 +50,9 @@ public class Peasant {
         return position;
     }
 
-    public void setPosition(Position position) {
+    public void setPosition(Position position, GameState state) {
         this.position = new Position(position);
+        updatePeasantLocationVariables(state);
     }
 
     public boolean isAdjacentTownHall() {
@@ -78,7 +79,7 @@ public class Peasant {
         this.adjacentWoodSource = adjacentWoodSource;
     }
 
-    public void updatePeasantLocationVariables(GameState state){
+    private void updatePeasantLocationVariables(GameState state){
         setAdjacentTownHall(false);
         setAdjacentGoldSource(false);
         setAdjacentWoodSource(false);

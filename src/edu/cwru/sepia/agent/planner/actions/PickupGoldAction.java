@@ -21,12 +21,18 @@ public class PickupGoldAction implements StripsAction {
 
     @Override
     public boolean preconditionsMet(GameState state) {
+        if(!state.peasants.containsKey(peasantID)){
+            return false;
+        }
+        if(!state.resources.containsKey(resourceID)){
+            return false;
+        }
         Peasant p = state.peasants.get(peasantID);
-        return state.peasants.containsKey(peasantID)
-                && state.resources.containsKey(resourceID)
-                && state.resources.get(resourceID).type == ResourceNode.Type.GOLD_MINE
+        Resource r = state.resources.get(resourceID);
+        return r.type == ResourceNode.Type.GOLD_MINE
                 && !(p.isHoldingGold())
-                && p.isAdjacentGoldSource();
+                && !(p.isHoldingWood())
+                && p.getPosition().isAdjacent(r.position);
     }
 
     @Override

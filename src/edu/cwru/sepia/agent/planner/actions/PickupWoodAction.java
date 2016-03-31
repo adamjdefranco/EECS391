@@ -21,12 +21,18 @@ public class PickupWoodAction implements StripsAction {
 
     @Override
     public boolean preconditionsMet(GameState state) {
+        if(!state.peasants.containsKey(peasantID)){
+            return false;
+        }
+        if(!state.resources.containsKey(resourceID)){
+            return false;
+        }
         Peasant p = state.peasants.get(peasantID);
-        return state.peasants.containsKey(peasantID)
-                && state.resources.containsKey(resourceID)
-                && state.resources.get(resourceID).type == ResourceNode.Type.TREE
+        Resource r = state.resources.get(resourceID);
+        return r.type == ResourceNode.Type.TREE
                 && !(p.isHoldingWood())
-                && p.isAdjacentWoodSource();
+                && !(p.isHoldingGold())
+                && p.getPosition().isAdjacent(r.position);
     }
 
     @Override
