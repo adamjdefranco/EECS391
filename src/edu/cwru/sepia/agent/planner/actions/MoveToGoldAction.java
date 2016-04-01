@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
+import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.Resource;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
@@ -12,6 +13,7 @@ public class MoveToGoldAction implements StripsAction {
 
     public final int peasantID;
     public final int resourceID;
+    private Position goldPosition;
 
     public MoveToGoldAction(Peasant peasant, Resource goldResource) {
         this.peasantID = peasant.id;
@@ -38,8 +40,16 @@ public class MoveToGoldAction implements StripsAction {
         clone.peasants.get(peasantID).setPosition(clone.resources.get(resourceID).position, clone);
         clone.peasants.get(peasantID).setAdjacentGoldSource(true);
         clone.addAction(this);
-        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(state.resources.get(resourceID).position);
+        goldPosition = state.resources.get(resourceID).position;
+        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(goldPosition);
         clone.incrementCost(cost);
         return clone;
     }
+
+    @Override
+    public String toString() {
+        return "Peasant with planning ID " + peasantID + " moved to gold with planning ID "
+                + resourceID + " and position " + goldPosition + ".";
+    }
+
 }

@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner.actions;
 
 import edu.cwru.sepia.agent.planner.GameState;
 import edu.cwru.sepia.agent.planner.Peasant;
+import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.Resource;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
@@ -12,6 +13,7 @@ public class MoveToWoodAction implements StripsAction {
 
     public final int peasantID;
     public final int resourceID;
+    private Position woodLocation;
 
     public MoveToWoodAction(Peasant peasant, Resource resource) {
         this.peasantID = peasant.id;
@@ -37,10 +39,17 @@ public class MoveToWoodAction implements StripsAction {
         GameState clone = new GameState(state);
         clone.peasants.get(peasantID).setPosition(clone.resources.get(resourceID).position, clone);
         clone.peasants.get(peasantID).setAdjacentWoodSource(true);
-        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(state.resources.get(resourceID).position);
+        woodLocation = state.resources.get(resourceID).position;
+        double cost = state.peasants.get(peasantID).getPosition().chebyshevDistance(woodLocation);
         clone.incrementCost(cost);
         clone.addAction(this);
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return "Peasant with planning ID " + peasantID + " moved to wood with planning ID "
+                + resourceID + " and location " + woodLocation + ".";
     }
 
 }
