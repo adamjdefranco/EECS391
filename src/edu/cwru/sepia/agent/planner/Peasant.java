@@ -20,6 +20,13 @@ public class Peasant {
         this.position = position;
     }
 
+    public Peasant(int id, Position position, boolean holdingWood, boolean holdingGold){
+        this.id = id;
+        this.position = position;
+        this.holdingGold = holdingGold;
+        this.holdingWood = holdingWood;
+    }
+
     public Peasant(Peasant other) {
         this.id = other.id;
         this.holdingGold = other.holdingGold;
@@ -83,7 +90,7 @@ public class Peasant {
         this.adjacentWoodSource = adjacentWoodSource;
     }
 
-    private void updatePeasantLocationVariables(GameState state){
+    public void updatePeasantLocationVariables(GameState state){
         setAdjacentTownHall(false);
         setAdjacentGoldSource(false);
         setAdjacentWoodSource(false);

@@ -10,7 +10,7 @@ import java.util.List;
  */
 public class MultipleAgentStripsAction implements StripsAction {
 
-    final List<StripsAction> actions;
+    public final List<StripsAction> actions;
 
     public MultipleAgentStripsAction(List<StripsAction> actions) {
         this.actions = new ArrayList<>(actions);
@@ -33,5 +33,15 @@ public class MultipleAgentStripsAction implements StripsAction {
             clone = action.apply(clone);
         }
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for(StripsAction a : actions){
+            sb.append(a.toString());
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

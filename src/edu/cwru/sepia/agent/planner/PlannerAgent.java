@@ -108,20 +108,17 @@ public class PlannerAgent extends Agent {
             iterations++;
             GameState state = stateQueue.poll();
             closedSet.add(state);
-            if(state.peasants.size() > 2){
-                System.out.println("Made a peasant!");
-            }
 //            System.out.println("Plan Length: "+state.actions.size()+" Cost: "+state.getCost()+" Heuristic: "+state.heuristic());
             if (state.isGoal()) {
                 System.out.println("Found goal state. Exiting A* Plan Search.");
-                System.out.println("Took "+iterations+" iterations to complete, with a path of length "+state.actions.size());
-                System.out.println("States generated: "+statesGenerated+"\nstates ignored: "+statesIgnored+"\nmax states generated for a single state: "+maxStatesGenerated);
+                System.out.println("Took " + iterations + " iterations to complete, with a path of length " + state.actions.size());
+                System.out.println("States generated: " + statesGenerated + "\nstates ignored: " + statesIgnored + "\nmax states generated for a single state: " + maxStatesGenerated);
                 goalState = state;
                 break;
             } else {
                 List<GameState> children = state.generateChildren();
                 statesGenerated += children.size();
-                if(children.size() > maxStatesGenerated){
+                if (children.size() > maxStatesGenerated) {
                     maxStatesGenerated = children.size();
                 }
                 for (GameState child : children) {
@@ -140,7 +137,7 @@ public class PlannerAgent extends Agent {
             List<List<StripsAction>> actionsForState = goalState.actions;
             Collections.reverse(actionsForState);
             for (List<StripsAction> actionList : actionsForState) {
-                if(actionList.size() == 1){
+                if (actionList.size() == 1) {
                     plan.push(actionList.get(0));
                 } else {
                     plan.push(new MultipleAgentStripsAction(actionList));

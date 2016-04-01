@@ -96,7 +96,7 @@ public class GameState implements Comparable<GameState> {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.townHall = new TownHall(townHall);
-        this.actions = new ArrayList<>(actions.size());
+        this.actions = new ArrayList<>(Math.max(actions.size(),1));
         for(List<StripsAction> histActions : actions){
             this.actions.add(new ArrayList<>(histActions));
         }
@@ -207,7 +207,6 @@ public class GameState implements Comparable<GameState> {
         int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood();
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
         int totalRemainingResources = remainingGold + remainingWood;
-        int totalRequiredResources = townHall.requiredTotalGold + townHall.requiredTotalWood;
 
         int nonPriorityValue = 25;
         int priorityValue = 50;
@@ -217,44 +216,58 @@ public class GameState implements Comparable<GameState> {
         for(Peasant p : peasants.values()){
             if(remainingGold > 0) {
                 if (p.isAdjacentGoldSource()) {
-                    heuristic += prioritizeGold?priorityValue:nonPriorityValue;
-                    if (p.isHoldingGold()) {
+                    if(!p.isHoldingGold() && getAdjacentResource(p, ResourceNode.Type.GOLD_MINE).isPresent()){
                         heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                    } else if (p.isHoldingGold()) {
+                        heuristic += (prioritizeGold?priorityValue:nonPriorityValue);
                     }
                 }
             }
             if(remainingWood > 0) {
                 if (p.isAdjacentWoodSource()) {
-                    heuristic += prioritizeGold?nonPriorityValue:priorityValue;
-                    if (p.isHoldingWood()) {
+                    if(!p.isHoldingWood() && getAdjacentResource(p, ResourceNode.Type.TREE).isPresent()){
                         heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                    } else if (p.isHoldingWood()) {
+                        heuristic += (prioritizeGold?nonPriorityValue:priorityValue);
                     }
                 }
             }
             if(p.isAdjacentTownHall()){
-                if(p.isHoldingWood()){
+                if(p.isHoldingWood() && remainingWood > 0){
                     heuristic += prioritizeGold?nonPriorityValue:priorityValue;
-                } else if (p.isHoldingGold()){
+                } else if (p.isHoldingGold() && remainingGold > 0){
                     heuristic += prioritizeGold?priorityValue:nonPriorityValue;
                 }
             }
         }
 
 
-        heuristic += (townHall.getCurrentGold() + townHall.getCurrentWood());
-
-        if((totalRemainingResources-400)/(Math.max(1,peasants.size()-1)) > (totalRemainingResources)/(peasants.size())){
-            heuristic += (peasants.size()*450) + 1;
-        } else {
-            heuristic += (peasants.size()*400);
-        }
+        heuristic += 1.5*(townHall.getCurrentGold() + townHall.getCurrentWood());
+        heuristic -= totalRemainingResources / (peasants.size());
+//        if((totalRemainingResources-400)/(Math.max(1,peasants.size()-1)) > (totalRemainingResources)/(peasants.size())){
+//            heuristic += (peasants.size()*500);
+//        } else {
+//            heuristic += (peasants.size()*400);
+//        }
 
         return heuristic;
 
     }
 
+    private Optional<Resource> getAdjacentResource(Peasant p, ResourceNode.Type type){
+        return resources.values().stream().filter(r->r.position.isAdjacent(p.getPosition()) && r.type == type && r.amountRemaining > 0).findFirst();
+    }
+
     public double queueVal(){
         return heuristic()-getCost();
+    }
+
+    public List<StripsAction> latestActions(){
+        if(actions.size() > 0) {
+            return actions.get(actions.size() - 1);
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     /**

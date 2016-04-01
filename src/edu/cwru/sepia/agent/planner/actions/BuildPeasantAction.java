@@ -10,7 +10,7 @@ import edu.cwru.sepia.agent.planner.TownHall;
  */
 public class BuildPeasantAction implements StripsAction {
 
-    final int townhallID;
+    public final int townhallID;
     private int newPeasantID;
     private Position townHallPosition;
 
