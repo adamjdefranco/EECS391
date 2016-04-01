@@ -208,35 +208,33 @@ public class GameState implements Comparable<GameState> {
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
         int totalRemainingResources = remainingGold + remainingWood;
 
-        int nonPriorityValue = 25;
-        int priorityValue = 50;
-
-        boolean prioritizeGold = townHall.getCurrentGold() - townHall.getCurrentWood() < 500;
+        int woodPriorityValue = 25;
+        int goldPriorityValue = 50;
 
         for(Peasant p : peasants.values()){
             if(remainingGold > 0) {
                 if (p.isAdjacentGoldSource()) {
                     if(!p.isHoldingGold() && getAdjacentResource(p, ResourceNode.Type.GOLD_MINE).isPresent()){
-                        heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                        heuristic += goldPriorityValue;
                     } else if (p.isHoldingGold()) {
-                        heuristic += (prioritizeGold?priorityValue:nonPriorityValue);
+                        heuristic += woodPriorityValue;
                     }
                 }
             }
             if(remainingWood > 0) {
                 if (p.isAdjacentWoodSource()) {
                     if(!p.isHoldingWood() && getAdjacentResource(p, ResourceNode.Type.TREE).isPresent()){
-                        heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                        heuristic += goldPriorityValue;
                     } else if (p.isHoldingWood()) {
-                        heuristic += (prioritizeGold?nonPriorityValue:priorityValue);
+                        heuristic += woodPriorityValue;
                     }
                 }
             }
             if(p.isAdjacentTownHall()){
                 if(p.isHoldingWood() && remainingWood > 0){
-                    heuristic += prioritizeGold?nonPriorityValue:priorityValue;
+                    heuristic += woodPriorityValue;
                 } else if (p.isHoldingGold() && remainingGold > 0){
-                    heuristic += prioritizeGold?priorityValue:nonPriorityValue;
+                    heuristic += goldPriorityValue;
                 }
             }
         }

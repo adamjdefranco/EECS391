@@ -114,12 +114,14 @@ public class PEAgent extends Agent {
                     } else if (peasantIdMap.containsValue(unitResults.getKey())) {
                         //Do double checks here of a sort in case Anna was right.
                         if(!unitResults.getValue().getAction().equals(lastIssuedActions.get(unitResults.getKey()))){
+                            System.err.println("Action failed. Unit ID: "+unitResults.getKey()+", Action: "+lastIssuedActions.get(unitResults.getKey()));
                             reissuedActions.put(unitResults.getKey(), lastIssuedActions.get(unitResults.getKey()));
                         }
                     }
                 } else {
                     if (feedback == ActionFeedback.FAILED) {
                         reissuedActions.put(unitResults.getKey(), lastIssuedActions.get(unitResults.getKey()));
+                        System.err.println("Action failed. Unit ID: "+unitResults.getKey()+", Action: "+lastIssuedActions.get(unitResults.getKey()));
                     } else if (feedback == ActionFeedback.INCOMPLETE) {
                         inProgressActions++;
                     } else {
