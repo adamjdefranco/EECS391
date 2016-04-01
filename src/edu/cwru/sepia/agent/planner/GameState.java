@@ -217,30 +217,30 @@ public class GameState implements Comparable<GameState> {
                     if(!p.isHoldingGold() && getAdjacentResource(p, ResourceNode.Type.GOLD_MINE).isPresent()){
                         heuristic += goldPriorityValue;
                     } else if (p.isHoldingGold()) {
-                        heuristic += woodPriorityValue;
+                        heuristic += 2*goldPriorityValue;
                     }
                 }
             }
             if(remainingWood > 0) {
                 if (p.isAdjacentWoodSource()) {
                     if(!p.isHoldingWood() && getAdjacentResource(p, ResourceNode.Type.TREE).isPresent()){
-                        heuristic += goldPriorityValue;
-                    } else if (p.isHoldingWood()) {
                         heuristic += woodPriorityValue;
+                    } else if (p.isHoldingWood()) {
+                        heuristic += 2*woodPriorityValue;
                     }
                 }
             }
             if(p.isAdjacentTownHall()){
                 if(p.isHoldingWood() && remainingWood > 0){
-                    heuristic += woodPriorityValue;
+                    heuristic += 3*woodPriorityValue;
                 } else if (p.isHoldingGold() && remainingGold > 0){
-                    heuristic += goldPriorityValue;
+                    heuristic += 3*goldPriorityValue;
                 }
             }
         }
 
 
-        heuristic += 1.5*(townHall.getCurrentGold() + townHall.getCurrentWood());
+        heuristic += (townHall.getCurrentGold() + townHall.getCurrentWood());
         heuristic -= totalRemainingResources / (peasants.size());
 //        if((totalRemainingResources-400)/(Math.max(1,peasants.size()-1)) > (totalRemainingResources)/(peasants.size())){
 //            heuristic += (peasants.size()*500);

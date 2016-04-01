@@ -41,7 +41,7 @@ public class DepositWoodAction implements StripsAction {
     @Override
     public String toString() {
         return "Peasant with planning ID " + peasantID + " deposited wood at town hall with planning ID "
-                + townHallID + " and position " + townHallPosition + ".";
+                + townHallID + " and position " + townHallPosition + ".\n";
     }
 
 }
