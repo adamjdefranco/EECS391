@@ -32,10 +32,9 @@ public class GameState implements Comparable<GameState> {
     public TownHall townHall;
     public Map<Integer, Peasant> peasants;
     public Map<Integer, Resource> resources;
-    public List<StripsAction> actions;
+    public List<List<StripsAction>> actions;
     private double costToGetHere = 0.0;
-    private int populationCap;
-    private int population;
+
     /**
      * Construct a GameState from a stateview object. This is used to construct the initial search node. All other
      * nodes should be constructed from the another constructor you create or by factory functions that you create.
@@ -49,8 +48,6 @@ public class GameState implements Comparable<GameState> {
     public GameState(State.StateView state, int playernum, int requiredGold, int requiredWood, boolean buildPeasants) {
         peasants = new HashMap<>();
         actions = new ArrayList<>();
-        populationCap = state.getSupplyCap(playernum);
-        population = state.getSupplyAmount(playernum);
         resources = state.getAllResourceIds().stream().map(state::getResourceNode).collect(Collectors.toMap(ResourceNode.ResourceView::getID, c -> new Resource(c.getID(), Position.forResource(c), c.getAmountRemaining(), c.getType())));
         for (Unit.UnitView unit : state.getUnitIds(playernum).stream().map(state::getUnit).collect(Collectors.toList())) {
             String unitType = unit.getTemplateView().getName().toLowerCase();
@@ -59,7 +56,11 @@ public class GameState implements Comparable<GameState> {
                         Position.forUnit(unit),
                         requiredGold,
                         requiredWood,
-                        buildPeasants);
+                        state.getResourceAmount(playernum,ResourceType.WOOD),
+                        state.getResourceAmount(playernum,ResourceType.GOLD),
+                        buildPeasants,
+                        state.getSupplyCap(playernum),
+                        state.getSupplyAmount(playernum));
                 this.peasants.values().stream().filter(p -> p.getPosition().isAdjacent(townHall.pos)).forEach(peasant -> peasant.setAdjacentTownHall(true));
             } else if (unitType.equals("peasant")) {
                 Peasant p = new Peasant(peasants.size() + 1, Position.forUnit(unit));
@@ -88,14 +89,17 @@ public class GameState implements Comparable<GameState> {
     }
 
     public GameState(GameState old) {
-        this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere, old.population, old.populationCap);
+        this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
     }
 
-    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<StripsAction> actions, double previousCost, int population, int populationCap) {
+    public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, double previousCost) {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.townHall = new TownHall(townHall);
-        this.actions = new ArrayList<>(actions);
+        this.actions = new ArrayList<>(actions.size());
+        for(List<StripsAction> histActions : actions){
+            this.actions.add(new ArrayList<>(histActions));
+        }
         this.costToGetHere = previousCost;
     }
 
@@ -110,14 +114,6 @@ public class GameState implements Comparable<GameState> {
         return townHall.getCurrentGold() >= townHall.requiredTotalGold && townHall.getCurrentWood() >= townHall.requiredTotalWood;
     }
 
-    public int getPopulationCap() {
-        return populationCap;
-    }
-
-    public int getPopulation() {
-        return population;
-    }
-
     /**
      * The branching factor of this search graph are much higher than the planning. Generate all of the possible
      * successor states and their associated actions in this method.
@@ -126,6 +122,7 @@ public class GameState implements Comparable<GameState> {
      */
     public List<GameState> generateChildren() {
         List<GameState> gameStates = new ArrayList<>();
+        this.actions.add(new ArrayList<>());
         gameStates.add(this);
         return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
@@ -189,6 +186,10 @@ public class GameState implements Comparable<GameState> {
         if (putWoodAction.preconditionsMet(this)) {
             actions.add(putWoodAction);
         }
+        BuildPeasantAction buildPeasant = new BuildPeasantAction(townHall);
+        if(buildPeasant.preconditionsMet(this)){
+            actions.add(buildPeasant);
+        }
         return actions;
     }
 
@@ -205,6 +206,8 @@ public class GameState implements Comparable<GameState> {
 
         int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood();
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
+        int totalRemainingResources = remainingGold + remainingWood;
+        int totalRequiredResources = townHall.requiredTotalGold + townHall.requiredTotalWood;
 
         int nonPriorityValue = 25;
         int priorityValue = 50;
@@ -237,60 +240,21 @@ public class GameState implements Comparable<GameState> {
             }
         }
 
-        int totalRemainingResources = remainingGold + remainingWood;
-        heuristic -= totalRemainingResources / (peasants.size());
 
-//        List<Resource> goldMines = resources.values().stream()
-//                //Filter so that only gold mines with resources left are included
-//                .filter(res -> res.type == ResourceNode.Type.GOLD_MINE && res.amountRemaining > 0)
-//                //Sort by distance to the town hall
-//                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
-//                .collect(Collectors.toList());
-//        Resource nearestMine = goldMines.get(0);
-//
-//        List<Resource> trees = resources.values().stream()
-//                .filter(res -> res.type == ResourceNode.Type.TREE && res.amountRemaining > 0)
-//                .sorted((r1, r2) -> Double.compare(r1.position.euclideanDistance(townHall.pos), r2.position.euclideanDistance(townHall.pos)))
-//                .collect(Collectors.toList());
-//        Resource nearestTree = trees.get(0);
-//
-//        //Compute the round trip time total for each resource.
-//        heuristic += Math.max(remainingGold,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestMine.position) + 2);
-//        heuristic += Math.max(remainingWood,0)/(100*peasants.size())*(townHall.pos.euclideanDistance(nearestTree.position) + 2);
-//
-//        for(Peasant p : peasants.values()){
-//            //Encourage anyone holding stuff to go turn it in.
-//            if(p.isAdjacentTownHall()){
-//                if(p.isHoldingGold()){
-//                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
-//                } else if (p.isHoldingWood()){
-//                    heuristic -= (p.getPosition().euclideanDistance(townHall.pos) + 1);
-//                }
-//            }
-//            double treeDist = 0, mineDist = 0;
-//            if(p.isAdjacentWoodSource()){
-//                treeDist = townHall.pos.euclideanDistance(nearestTree.position);
-//            }
-//            if(p.isAdjacentGoldSource()){
-//                mineDist = townHall.pos.euclideanDistance(nearestMine.position);
-//            }
-//            double nearestResourceDist = 0;
-//            if(remainingGold > 0 && remainingWood > 0){
-//                nearestResourceDist = Math.max(treeDist,mineDist);
-//            } else if (remainingGold > 0){
-//                nearestResourceDist = mineDist;
-//            } else if (remainingWood > 0){
-//                nearestResourceDist = treeDist;
-//            }
-//            heuristic -= nearestResourceDist;
-//        }
+        heuristic += (townHall.getCurrentGold() + townHall.getCurrentWood());
+
+        if((totalRemainingResources-400)/(Math.max(1,peasants.size()-1)) > (totalRemainingResources)/(peasants.size())){
+            heuristic += (peasants.size()*450) + 1;
+        } else {
+            heuristic += (peasants.size()*400);
+        }
 
         return heuristic;
 
     }
 
     public double queueVal(){
-        return getCost() + heuristic();
+        return heuristic()-getCost();
     }
 
     /**
@@ -308,7 +272,10 @@ public class GameState implements Comparable<GameState> {
     }
 
     public void addAction(StripsAction action) {
-        actions.add(action);
+        if(actions.size() == 0){
+            actions.add(new ArrayList<>());
+        }
+        actions.get(actions.size()-1).add(action);
     }
 
     /**
@@ -320,7 +287,7 @@ public class GameState implements Comparable<GameState> {
      */
     @Override
     public int compareTo(GameState o) {
-        return Double.compare(heuristic()-getCost(),o.heuristic()- o.getCost());
+        return Double.compare(queueVal(),o.queueVal());
     }
 
     /**

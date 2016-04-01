@@ -19,7 +19,7 @@ public class BuildPeasantAction implements StripsAction {
     public boolean preconditionsMet(GameState state) {
         return state.townHall.id == townhallID
                 && state.townHall.canBuildPeasants()
-                && state.getPopulationCap() > state.getPopulation();
+                && state.townHall.getPopulationCap() > state.townHall.getPopulation();
     }
 
     @Override

@@ -2,6 +2,7 @@ package edu.cwru.sepia.agent.planner;
 
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.agent.Agent;
+import edu.cwru.sepia.agent.planner.actions.MultipleAgentStripsAction;
 import edu.cwru.sepia.agent.planner.actions.StripsAction;
 import edu.cwru.sepia.environment.model.AStarNode;
 import edu.cwru.sepia.environment.model.history.History;
@@ -107,6 +108,9 @@ public class PlannerAgent extends Agent {
             iterations++;
             GameState state = stateQueue.poll();
             closedSet.add(state);
+            if(state.peasants.size() > 2){
+                System.out.println("Made a peasant!");
+            }
 //            System.out.println("Plan Length: "+state.actions.size()+" Cost: "+state.getCost()+" Heuristic: "+state.heuristic());
             if (state.isGoal()) {
                 System.out.println("Found goal state. Exiting A* Plan Search.");
@@ -133,10 +137,14 @@ public class PlannerAgent extends Agent {
             return null;
         } else {
             Stack<StripsAction> plan = new Stack<>();
-            List<StripsAction> actionsForState = goalState.actions;
+            List<List<StripsAction>> actionsForState = goalState.actions;
             Collections.reverse(actionsForState);
-            for (StripsAction action : actionsForState) {
-                plan.push(action);
+            for (List<StripsAction> actionList : actionsForState) {
+                if(actionList.size() == 1){
+                    plan.push(actionList.get(0));
+                } else {
+                    plan.push(new MultipleAgentStripsAction(actionList));
+                }
             }
             System.out.println("Created plan.");
             return plan;

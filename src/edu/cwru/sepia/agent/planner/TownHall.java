@@ -15,12 +15,19 @@ public class TownHall {
     private int currentGold = 0;
     private int currentWood = 0;
 
-    public TownHall(int id, Position pos, int requiredTotalGold, int requiredTotalWood, boolean allowedToBuildPeasants) {
+    private int populationCap;
+    private int population;
+
+    public TownHall(int id, Position pos, int requiredTotalGold, int requiredTotalWood, int currentWood, int currentGold, boolean allowedToBuildPeasants, int populationCap, int population) {
         this.requiredTotalGold = requiredTotalGold;
         this.requiredTotalWood = requiredTotalWood;
         this.id = id;
         this.pos = pos;
         this.allowedToBuildPeasants = allowedToBuildPeasants;
+        this.populationCap = populationCap;
+        this.population = population;
+        this.currentGold = currentGold;
+        this.currentWood = currentWood;
     }
 
     public TownHall(TownHall other) {
@@ -31,10 +38,11 @@ public class TownHall {
         this.allowedToBuildPeasants = other.allowedToBuildPeasants;
         this.currentGold = other.currentGold;
         this.currentWood = other.currentWood;
+        this.population = other.population;
+        this.populationCap = other.populationCap;
     }
 
     public boolean canBuildPeasants(){
-        //TODO modify this so that this will return true when the town hall can build a peasant.
         return allowedToBuildPeasants && this.currentGold >= 400;
     }
 
@@ -50,11 +58,20 @@ public class TownHall {
         return currentWood;
     }
 
+    public int getPopulationCap() {
+        return populationCap;
+    }
+
+    public int getPopulation() {
+        return population;
+    }
+
     public void makePeasant(){
         if(this.currentGold < 400){
             throw new IllegalArgumentException("gold");
         } else {
             this.currentGold -= 400;
+            this.population += 1;
         }
     }
 
