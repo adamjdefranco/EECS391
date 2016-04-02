@@ -5,20 +5,20 @@ import edu.cwru.sepia.agent.planner.Peasant;
 import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.TownHall;
 
-/**
- * Created by james on 3/28/16.
- */
+// Class to check preconditions for a peasant to deposit gold at town hall and applying it to a state
 public class DepositGoldAction implements StripsAction {
 
     public final int peasantID;
     public final int townHallID;
     private Position townHallPosition;
 
+    // Constructor
     public DepositGoldAction(Peasant peasant, TownHall townHall) {
         this.peasantID = peasant.id;
         this.townHallID = townHall.id;
     }
 
+    // The preconditions are met if the peasant is holding gold and is adjacent to town hall.
     @Override
     public boolean preconditionsMet(GameState state) {
         return state.peasants.containsKey(peasantID)
@@ -27,6 +27,7 @@ public class DepositGoldAction implements StripsAction {
                 && state.peasants.get(peasantID).isAdjacentTownHall();
     }
 
+    // Applies the action (depositing gold at town hall) to the given state
     @Override
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);

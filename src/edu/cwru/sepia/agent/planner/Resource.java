@@ -8,11 +8,13 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class Resource {
 
+    // Variables for the resources
     public final int id;
     public final Position position;
     protected int amountRemaining;
     public final ResourceNode.Type type;
 
+    // Constructor
     public Resource(int id, Position position, int amountRemaining, ResourceNode.Type type) {
         this.id = id;
         this.position = position;
@@ -20,6 +22,7 @@ public class Resource {
         this.type = type;
     }
 
+    // Construction for an existing recourse
     public Resource(Resource original){
         this.position = original.position;
         this.amountRemaining = original.amountRemaining;
@@ -27,6 +30,7 @@ public class Resource {
         this.id = original.id;
     }
 
+    // Equals checks if the IDs are the same, the amount remaining is equal, and the positions are not the same
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -50,6 +54,7 @@ public class Resource {
         return result;
     }
 
+    // Takes the resource from the source
     public void takeResource(int amount){
         if(amount > amountRemaining){
             throw new IllegalArgumentException("amount");

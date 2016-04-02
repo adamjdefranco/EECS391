@@ -5,6 +5,7 @@ package edu.cwru.sepia.agent.planner;
  */
 public class TownHall {
 
+    // Variables for the town hall
     public final int requiredTotalGold;
     public final int requiredTotalWood;
 
@@ -18,6 +19,7 @@ public class TownHall {
     private int populationCap;
     private int population;
 
+    // Constructor
     public TownHall(int id, Position pos, int requiredTotalGold, int requiredTotalWood, int currentWood, int currentGold, boolean allowedToBuildPeasants, int populationCap, int population) {
         this.requiredTotalGold = requiredTotalGold;
         this.requiredTotalWood = requiredTotalWood;
@@ -30,6 +32,7 @@ public class TownHall {
         this.currentWood = currentWood;
     }
 
+    // Constructor for a given town hall
     public TownHall(TownHall other) {
         this.requiredTotalGold = other.requiredTotalGold;
         this.requiredTotalWood = other.requiredTotalWood;
@@ -42,10 +45,12 @@ public class TownHall {
         this.populationCap = other.populationCap;
     }
 
+    // Whether or not you can build peasants (part two of the assignment)
     public boolean canBuildPeasants(){
         return allowedToBuildPeasants && this.currentGold >= 400;
     }
 
+    // Actions performed on town hall
     public void depositGold(int amountOfGold) { this.currentGold += amountOfGold; }
 
     public void depositWood(int amountOfWood) { this.currentWood += amountOfWood; }
@@ -66,6 +71,7 @@ public class TownHall {
         return population;
     }
 
+    // Creates a peasant and deducts 400 gold and adds one to the population
     public void makePeasant(){
         if(this.currentGold < 400){
             throw new IllegalArgumentException("gold");
@@ -75,6 +81,7 @@ public class TownHall {
         }
     }
 
+    // Equals checks that the required gold and wood is the same, the current gold and wood is the same, and the ability to build peasants is allowed
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

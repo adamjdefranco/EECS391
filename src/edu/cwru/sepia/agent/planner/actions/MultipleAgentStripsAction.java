@@ -5,9 +5,7 @@ import edu.cwru.sepia.agent.planner.GameState;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by james on 3/31/16.
- */
+// Class to check if the preconditions for multiple actions are met. Also can apply the multiple actions to a state.
 public class MultipleAgentStripsAction implements StripsAction {
 
     public final List<StripsAction> actions;
@@ -16,6 +14,7 @@ public class MultipleAgentStripsAction implements StripsAction {
         this.actions = new ArrayList<>(actions);
     }
 
+    // Checks if all of the preconditions are met for multiple agents
     @Override
     public boolean preconditionsMet(GameState state) {
         for(StripsAction action : actions){
@@ -26,6 +25,7 @@ public class MultipleAgentStripsAction implements StripsAction {
         return true;
     }
 
+    // Applies multiple actions to a given state
     @Override
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);

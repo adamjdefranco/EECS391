@@ -3,20 +3,20 @@ package edu.cwru.sepia.agent.planner.actions;
 import edu.cwru.sepia.agent.planner.*;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
-/**
- * Created by james on 3/28/16.
- */
+// Class to check preconditions fora peasant to pick up wood and applying it to a state
 public class PickupWoodAction implements StripsAction {
 
     public final int peasantID;
     public final int resourceID;
     private Position woodPosition;
 
+    // Constructor
     public PickupWoodAction(Peasant peasant, Resource resource) {
         this.peasantID = peasant.id;
         this.resourceID = resource.id;
     }
 
+    //  Preconditions are only met if the tree has wood, the peasant is adjacent to a tree, and the peasant isn't holding anything
     @Override
     public boolean preconditionsMet(GameState state) {
         if(!state.peasants.containsKey(peasantID)){
@@ -34,6 +34,7 @@ public class PickupWoodAction implements StripsAction {
                 && r.getAmountRemaining() >= 100;
     }
 
+    // Applies the action (making the peasant pick up wood) to the state
     @Override
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);

@@ -24,6 +24,7 @@ public class PlannerAgent extends Agent {
     // Your PEAgent implementation. This prevents you from having to parse the text file representation of your plan.
     PEAgent peAgent;
 
+    // Constructor
     public PlannerAgent(int playernum, String[] params) {
         super(playernum);
 
@@ -31,10 +32,10 @@ public class PlannerAgent extends Agent {
             System.err.println("You must specify the required wood and gold amounts and whether peasants should be built");
         }
 
+        // Gets the arguments for if wood is needed, gold is needed, and if build peasants should be on or off
         requiredWood = Integer.parseInt(params[0]);
         requiredGold = Integer.parseInt(params[1]);
         buildPeasants = Boolean.parseBoolean(params[2]);
-
 
         System.out.println("required wood: " + requiredWood + " required gold: " + requiredGold + " build Peasants: " + buildPeasants);
     }
@@ -108,7 +109,7 @@ public class PlannerAgent extends Agent {
             iterations++;
             GameState state = stateQueue.poll();
             closedSet.add(state);
-//            System.out.println("Plan Length: "+state.actions.size()+" Cost: "+state.getCost()+" Heuristic: "+state.heuristic());
+            // Base case (if the current state is the goal state) exits search
             if (state.isGoal()) {
                 System.out.println("Found goal state. Exiting A* Plan Search.");
                 System.out.println("Took " + iterations + " iterations to complete, with a path of length " + state.actions.size());

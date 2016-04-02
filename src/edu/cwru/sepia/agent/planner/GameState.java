@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
  */
 public class GameState implements Comparable<GameState> {
 
+    // Variables for the GameState
     public TownHall townHall;
     public Map<Integer, Peasant> peasants;
     public Map<Integer, Resource> resources;
@@ -88,10 +89,12 @@ public class GameState implements Comparable<GameState> {
         }
     }
 
+    // Constructor 2
     public GameState(GameState old) {
         this(old.resources, old.peasants, old.townHall, old.actions, old.costToGetHere);
     }
 
+    // Constructor 3
     public GameState(Map<Integer, Resource> resources, Map<Integer, Peasant> peasants, TownHall townHall, List<List<StripsAction>> actions, double previousCost) {
         this.resources = resources.values().stream().map(Resource::new).collect(Collectors.toMap(r -> r.id, r -> r));
         this.peasants = peasants.values().stream().map(Peasant::new).collect(Collectors.toMap(r -> r.id, r -> r));
@@ -127,17 +130,20 @@ public class GameState implements Comparable<GameState> {
         return generateChildrenHelper(gameStates, this.peasants.values().iterator());
     }
 
+    // Generates child gamestates from given GameState with peasants
     private List<GameState> generateChildrenHelper(List<GameState> createdStates, Iterator<Peasant> peasants) {
         if (peasants.hasNext()) {
             Peasant p = peasants.next();
             List<GameState> newlyCreatedStates = new ArrayList<>();
             for (GameState newState : createdStates) {
                 List<StripsAction> peasantActions = newState.generateActionsForPeasant(p);
+                // Applies the stripsactions to the state
                 for (StripsAction a : peasantActions) {
                     GameState postApplication = a.apply(newState);
                     newlyCreatedStates.add(postApplication);
                 }
             }
+            // Generates more children if there are more peasants
             if (peasants.hasNext()) {
                 return generateChildrenHelper(newlyCreatedStates, peasants);
             } else {
@@ -148,25 +154,30 @@ public class GameState implements Comparable<GameState> {
         }
     }
 
+    // This method creates a list of StripsActions for the peasant to perform
     private List<StripsAction> generateActionsForPeasant(Peasant p) {
         List<StripsAction> actions = new ArrayList<>();
         for (Resource resource : resources.values()) {
             switch (resource.type) {
                 case GOLD_MINE:
+                    // Add the move to goldmine action to actions if the preconditions are met
                     MoveToGoldAction goldMoveAction = new MoveToGoldAction(p, resource);
                     if (goldMoveAction.preconditionsMet(this)) {
                         actions.add(goldMoveAction);
                     }
+                    // Add the pick up gold action to actions if the preconditions are met
                     PickupGoldAction getGoldAction = new PickupGoldAction(p, resource);
                     if (getGoldAction.preconditionsMet(this)) {
                         actions.add(getGoldAction);
                     }
                     break;
                 case TREE:
+                    // Add the move to tree action to actions if the preconditions are met
                     MoveToWoodAction woodMoveAction = new MoveToWoodAction(p, resource);
                     if (woodMoveAction.preconditionsMet(this)) {
                         actions.add(woodMoveAction);
                     }
+                    // Add the pick up wood action to actions if the preconditions are met
                     PickupWoodAction getWoodAction = new PickupWoodAction(p, resource);
                     if (getWoodAction.preconditionsMet(this)) {
                         actions.add(getWoodAction);
@@ -174,18 +185,22 @@ public class GameState implements Comparable<GameState> {
                     break;
             }
         }
+        // Add the move to town hall action to actions if the preconditions are met
         MoveToTownhallAction townhallMoveAction = new MoveToTownhallAction(p, townHall);
         if (townhallMoveAction.preconditionsMet(this)) {
             actions.add(townhallMoveAction);
         }
+        // Add the deposit gold action to actions if the preconditions are met
         DepositGoldAction putGoldAction = new DepositGoldAction(p, townHall);
         if (putGoldAction.preconditionsMet(this)) {
             actions.add(putGoldAction);
         }
+        // Add the deposit wood action to actions if the preconditions are met
         DepositWoodAction putWoodAction = new DepositWoodAction(p, townHall);
         if (putWoodAction.preconditionsMet(this)) {
             actions.add(putWoodAction);
         }
+        // Add the build peasant action to actions if the preconditions are met
         BuildPeasantAction buildPeasant = new BuildPeasantAction(townHall);
         if(buildPeasant.preconditionsMet(this)){
             actions.add(buildPeasant);
@@ -204,68 +219,68 @@ public class GameState implements Comparable<GameState> {
     public double heuristic() {
         double heuristic = 0;
 
+        // Gets the amount of wood  and gold still needed at town hall
         int remainingWood = townHall.requiredTotalWood - townHall.getCurrentWood();
         int remainingGold = townHall.requiredTotalGold - townHall.getCurrentGold();
         int totalRemainingResources = remainingGold + remainingWood;
 
+        // Gold is prioritized over wood as it can be used to spawn peasants
         int woodPriorityValue = 25;
         int goldPriorityValue = 50;
 
         for(Peasant p : peasants.values()){
+            // Case for the town hall needing more gold
             if(remainingGold > 0) {
                 if (p.isAdjacentGoldSource()) {
+                    // Adds a low amount to the heuristic if peasant doesn't already have gold as is adjacent to a gold mine
                     if(!p.isHoldingGold() && getAdjacentResource(p, ResourceNode.Type.GOLD_MINE).isPresent()){
                         heuristic += goldPriorityValue;
+                        // Adds a high amount to the heuristic if the peasant already has gold
                     } else if (p.isHoldingGold()) {
                         heuristic += 2*goldPriorityValue;
                     }
                 }
             }
+            // Case for town hall needing more wood
             if(remainingWood > 0) {
+                // Adds a low amount to the heuristic if peasant doesn't already have gold as is adjacent to a tree
                 if (p.isAdjacentWoodSource()) {
                     if(!p.isHoldingWood() && getAdjacentResource(p, ResourceNode.Type.TREE).isPresent()){
                         heuristic += woodPriorityValue;
+                        // Adds a high amount to the heuristic if the peasant already has wood
                     } else if (p.isHoldingWood()) {
                         heuristic += 2*woodPriorityValue;
                     }
                 }
             }
+            // Case for if the peasant is adjacent to town hall
             if(p.isAdjacentTownHall()){
+                // Higher heuristic if the peasant is holding wood and the town hall needs more wood
                 if(p.isHoldingWood() && remainingWood > 0){
                     heuristic += 3*woodPriorityValue;
+                    // Higher heuristic if the peasant is holding wood and the town hall needs more gold
                 } else if (p.isHoldingGold() && remainingGold > 0){
                     heuristic += 3*goldPriorityValue;
                 }
             }
         }
 
-
+        // Adds the current amount of hold and wood to the heuristic
         heuristic += (townHall.getCurrentGold() + townHall.getCurrentWood());
+        // Used for determining if another peasant should be spawned
         heuristic -= totalRemainingResources / (peasants.size());
-//        if((totalRemainingResources-400)/(Math.max(1,peasants.size()-1)) > (totalRemainingResources)/(peasants.size())){
-//            heuristic += (peasants.size()*500);
-//        } else {
-//            heuristic += (peasants.size()*400);
-//        }
 
         return heuristic;
 
     }
 
+    // Gets the types of resources the peasant p is adjacent to
     private Optional<Resource> getAdjacentResource(Peasant p, ResourceNode.Type type){
         return resources.values().stream().filter(r->r.position.isAdjacent(p.getPosition()) && r.type == type && r.amountRemaining > 0).findFirst();
     }
 
     public double queueVal(){
         return heuristic()-getCost();
-    }
-
-    public List<StripsAction> latestActions(){
-        if(actions.size() > 0) {
-            return actions.get(actions.size() - 1);
-        } else {
-            return new ArrayList<>();
-        }
     }
 
     /**
@@ -278,10 +293,12 @@ public class GameState implements Comparable<GameState> {
         return costToGetHere;
     }
 
+    // Adds a given double to the cost in the GameState
     public void incrementCost(double incr) {
         costToGetHere += incr;
     }
 
+    // Adds an action to the action array, or makes an empty arraylist is the size of the action is 0
     public void addAction(StripsAction action) {
         if(actions.size() == 0){
             actions.add(new ArrayList<>());
@@ -334,6 +351,7 @@ public class GameState implements Comparable<GameState> {
         return result;
     }
 
+    // Applies an action to the given StripsAction
     public GameState apply(StripsAction action) {
         return action.apply(this);
     }

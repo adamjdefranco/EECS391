@@ -24,15 +24,18 @@ public class Position {
     public final int x;
     public final int y;
 
+    // Constructor
     public Position(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
+    // Constructor for a given unit
     public static Position forUnit(Unit.UnitView view){
         return new Position(view.getXPosition(), view.getYPosition());
     }
 
+    // Constructor for a given resource
     public static Position forResource(ResourceNode.ResourceView view){
         return new Position(view.getXPosition(), view.getYPosition());
     }

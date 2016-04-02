@@ -35,6 +35,7 @@ public class PEAgent extends Agent {
     private int requiredWood;
     private int requiredGold;
 
+    // Constructor
     public PEAgent(int playernum, Stack<StripsAction> plan) {
         super(playernum);
         peasantIdMap = new HashMap<>();
@@ -48,6 +49,7 @@ public class PEAgent extends Agent {
         for (int unitId : stateView.getUnitIds(playernum)) {
             Unit.UnitView unit = stateView.getUnit(unitId);
             String unitType = unit.getTemplateView().getName().toLowerCase();
+            // Assigns planning IDs to town hall and peasant
             if (unitType.equals("townhall")) {
                 townhallId = unitId;
             } else if (unitType.equals("peasant")) {
@@ -105,6 +107,7 @@ public class PEAgent extends Agent {
             int inProgressActions = 0;
             for (Map.Entry<Integer, ActionResult> unitResults : actionResults.entrySet()) {
                 ActionFeedback feedback = unitResults.getValue().getFeedback();
+                // Case for the action being complete. Puts the list of new sepia unity IDs into a peasant ID map
                 if (feedback == ActionFeedback.COMPLETED) {
                     if (unitResults.getKey() == townhallId && lastIssuedActions.get(townhallId).getType() == ActionType.PRIMITIVEPRODUCE) {
                         List<Integer> newSepiaUnitIDs = stateView.getUnitIds(playernum).stream().map(i -> stateView.getUnit(i)).filter(u -> u.getTemplateView().getName().toLowerCase().equals("peasant") && !peasantIdMap.containsValue(u.getID())).map(u -> u.getID()).collect(Collectors.toList());
@@ -112,16 +115,17 @@ public class PEAgent extends Agent {
                             peasantIdMap.put(peasantIdMap.size() + 1, newID);
                         }
                     } else if (peasantIdMap.containsValue(unitResults.getKey())) {
-                        //Do double checks here of a sort in case Anna was right.
                         if(!unitResults.getValue().getAction().equals(lastIssuedActions.get(unitResults.getKey()))){
                             System.err.println("Action failed. Unit ID: "+unitResults.getKey()+", Action: "+lastIssuedActions.get(unitResults.getKey()));
                             reissuedActions.put(unitResults.getKey(), lastIssuedActions.get(unitResults.getKey()));
                         }
                     }
                 } else {
+                    // Case for action failing
                     if (feedback == ActionFeedback.FAILED) {
                         reissuedActions.put(unitResults.getKey(), lastIssuedActions.get(unitResults.getKey()));
                         System.err.println("Action failed. Unit ID: "+unitResults.getKey()+", Action: "+lastIssuedActions.get(unitResults.getKey()));
+                        // Case for action still being in progress
                     } else if (feedback == ActionFeedback.INCOMPLETE) {
                         inProgressActions++;
                     } else {
@@ -130,12 +134,14 @@ public class PEAgent extends Agent {
 
                 }
             }
+            // returns the reissued actions
             if (reissuedActions.size() > 0) {
                 return reissuedActions;
             } else if (inProgressActions > 0) {
                 return null;
             }
         }
+        // Case for if the plan happens to be empty
         if (!plan.isEmpty()) {
             StripsAction action = plan.pop();
             if (action.preconditionsMet(currentState)) {
@@ -160,49 +166,58 @@ public class PEAgent extends Agent {
      */
     private Map<Integer, Action> createSepiaAction(StripsAction action, State.StateView state) {
         Map<Integer, Action> actions = new HashMap<>();
+        // Case to convert a "move to gold" action to a sepia action
         if (action instanceof MoveToGoldAction) {
             int actualID = peasantIdMap.get(((MoveToGoldAction) action).peasantID);
             Position resourcePos = Position.forResource(state.getResourceNode(((MoveToGoldAction) action).resourceID));
             Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
             actions.put(actualID, a);
+            // Case to convert a "move to wood" action to a sepia action
         } else if (action instanceof MoveToWoodAction) {
             int actualID = peasantIdMap.get(((MoveToWoodAction) action).peasantID);
             Position resourcePos = Position.forResource(state.getResourceNode(((MoveToWoodAction) action).resourceID));
             Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
             actions.put(actualID, a);
+            // Case to convert a "move to town hall" action to a sepia action
         } else if (action instanceof MoveToTownhallAction) {
             int actualID = peasantIdMap.get(((MoveToTownhallAction) action).peasantID);
             Position resourcePos = Position.forUnit(state.getUnit(((MoveToTownhallAction) action).townHallID));
             Action a = Action.createCompoundMove(actualID, resourcePos.x, resourcePos.y);
             actions.put(actualID, a);
+            // Case to convert a "deposit gold" action to a sepia action
         } else if (action instanceof DepositGoldAction) {
             int actualID = peasantIdMap.get(((DepositGoldAction) action).peasantID);
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
             Position townHallPos = Position.forUnit(state.getUnit(((DepositGoldAction) action).townHallID));
             Action a = Action.createPrimitiveDeposit(actualID, peasantPosition.getDirection(townHallPos));
             actions.put(actualID, a);
+            // Case to convert a "deposit wood" action to a sepia action
         } else if (action instanceof DepositWoodAction) {
             int actualID = peasantIdMap.get(((DepositWoodAction) action).peasantID);
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
             Position townHallPos = Position.forUnit(state.getUnit(((DepositWoodAction) action).townHallID));
             Action a = Action.createPrimitiveDeposit(actualID, peasantPosition.getDirection(townHallPos));
             actions.put(actualID, a);
+            // Case to convert a "pick up wood" action to a sepia action
         } else if (action instanceof PickupWoodAction) {
             int actualID = peasantIdMap.get(((PickupWoodAction) action).peasantID);
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
             Position resourceLocation = Position.forResource(state.getResourceNode(((PickupWoodAction) action).resourceID));
             Action a = Action.createPrimitiveGather(actualID, peasantPosition.getDirection(resourceLocation));
             actions.put(actualID, a);
+            // Case to convert a "pick up gold" action to a sepia action
         } else if (action instanceof PickupGoldAction) {
             int actualID = peasantIdMap.get(((PickupGoldAction) action).peasantID);
             Position peasantPosition = Position.forUnit(state.getUnit(actualID));
             Position resourceLocation = Position.forResource(state.getResourceNode(((PickupGoldAction) action).resourceID));
             Action a = Action.createPrimitiveGather(actualID, peasantPosition.getDirection(resourceLocation));
             actions.put(actualID, a);
+            // Case to convert a "build peasant" action to a sepia action
         } else if (action instanceof BuildPeasantAction) {
             int townHallID = ((BuildPeasantAction) action).townhallID;
             Action a = Action.createPrimitiveProduction(townHallID, peasantTemplateId);
             actions.put(townHallID, a);
+            // Case to convert a "multiple agent" action to a sepia action
         } else if (action instanceof MultipleAgentStripsAction) {
             MultipleAgentStripsAction actualAction = (MultipleAgentStripsAction) action;
             for (StripsAction a : actualAction.actions) {

@@ -7,6 +7,7 @@ import edu.cwru.sepia.environment.model.state.ResourceNode;
  */
 public class Peasant {
 
+    // Variables stored for the peasant
     public final int id;
     private boolean holdingGold = false;
     private boolean holdingWood = false;
@@ -15,11 +16,13 @@ public class Peasant {
     private boolean adjacentWoodSource = false;
     private Position position;
 
+    // Constructor 1
     public Peasant(int id, Position position) {
         this.id = id;
         this.position = position;
     }
 
+    // Constructor 2
     public Peasant(int id, Position position, boolean holdingWood, boolean holdingGold){
         this.id = id;
         this.position = position;
@@ -27,6 +30,7 @@ public class Peasant {
         this.holdingWood = holdingWood;
     }
 
+    // Constructor 3
     public Peasant(Peasant other) {
         this.id = other.id;
         this.holdingGold = other.holdingGold;
@@ -37,6 +41,7 @@ public class Peasant {
         this.position = other.position;
     }
 
+    // Getters and setters for the variables held by the peasant
     public boolean isHoldingGold() {
         return holdingGold;
     }
@@ -90,6 +95,7 @@ public class Peasant {
         this.adjacentWoodSource = adjacentWoodSource;
     }
 
+    // Updates the boolean variables to reflect what resource (or town hall) the peasant is adjacent to
     public void updatePeasantLocationVariables(GameState state){
         setAdjacentTownHall(false);
         setAdjacentGoldSource(false);
@@ -107,6 +113,7 @@ public class Peasant {
         }
     }
 
+    // Equality check between two peasants. Makes sure they have all of the same values for their variables
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

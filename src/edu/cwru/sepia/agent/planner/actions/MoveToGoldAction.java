@@ -6,20 +6,20 @@ import edu.cwru.sepia.agent.planner.Position;
 import edu.cwru.sepia.agent.planner.Resource;
 import edu.cwru.sepia.environment.model.state.ResourceNode;
 
-/**
- * Created by james on 3/28/16.
- */
+// Class to check preconditions for a peasant to move to a gold resource and applying it to a state
 public class MoveToGoldAction implements StripsAction {
 
     public final int peasantID;
     public final int resourceID;
     private Position goldPosition;
 
+    // Constructor
     public MoveToGoldAction(Peasant peasant, Resource goldResource) {
         this.peasantID = peasant.id;
         this.resourceID = goldResource.id;
     }
 
+    // Preconditions are only met if the peasant is not adjacent to gold already, and there is a gold resource to move to
     @Override
     public boolean preconditionsMet(GameState state) {
         if(!state.resources.containsKey(resourceID)){
@@ -34,6 +34,7 @@ public class MoveToGoldAction implements StripsAction {
                 && !(p.getPosition().isAdjacent(r.position));
     }
 
+    // Applies the state (moving a peasant to a gamestate) to the given state
     @Override
     public GameState apply(GameState state) {
         GameState clone = new GameState(state);
