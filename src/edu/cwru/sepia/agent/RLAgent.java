@@ -185,7 +185,7 @@ public class RLAgent extends Agent {
         boolean shouldReissueActions = false;
 
         // Loop through all of the deathlogs, remove the dead footmen from the lists of footmen
-        for(DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
+        for (DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
             if (dLog.getController() == ENEMY_PLAYERNUM) {
                 enemyFootmen.remove(dLog.getDeadUnitID());
             } else {
@@ -194,8 +194,8 @@ public class RLAgent extends Agent {
         }
 
         // Decide whether or not a footman defender is damaged
-        for(DamageLog dLog : historyView.getDamageLogs((stateView.getTurnNumber() - 1))) {
-            if(myFootmen.contains((dLog.getDefenderID()))) {
+        for (DamageLog dLog : historyView.getDamageLogs((stateView.getTurnNumber() - 1))) {
+            if (myFootmen.contains((dLog.getDefenderID()))) {
                 shouldReissueActions = true;
             }
         }
@@ -203,17 +203,17 @@ public class RLAgent extends Agent {
         Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, stateView.getTurnNumber() - 1);
 
         // Loops through map of actionresults, if a footman is not currently doing an action, then actions should be reassigned
-        for(Map.Entry<Integer, ActionResult> entry : actionResults.entrySet()) {
-            if(myFootmen.contains(entry.getKey())) {
+        for (Map.Entry<Integer, ActionResult> entry : actionResults.entrySet()) {
+            if (myFootmen.contains(entry.getKey())) {
                 ActionFeedback actionFeedback = entry.getValue().getFeedback();
-                if(!actionFeedback.equals(ActionFeedback.INCOMPLETE)) {
+                if (!actionFeedback.equals(ActionFeedback.INCOMPLETE)) {
                     shouldReissueActions = true;
                 }
             }
         }
 
         // If you are in a testing round then calculate the cumulative reward value and add it to inEpisodeRewards
-        if(isTesting && stateView.getTurnNumber() % 5 == 0) {
+        if (isTesting && stateView.getTurnNumber() % 5 == 0) {
             double reward = 0;
             for (int i = 0; i < myFootmen.size(); i++) {
                 reward += calculateReward(stateView, historyView, myFootmen.get(i));
@@ -223,7 +223,7 @@ public class RLAgent extends Agent {
 
         // If people have been hit (isdamage) then reassign everyone to do something else
         // Or, if there's anyone who needs something to do, reassign
-        if(shouldReissueActions) {
+        if (shouldReissueActions) {
 
         } else {
 
@@ -248,6 +248,7 @@ public class RLAgent extends Agent {
 
         //Compute
         if (isTesting) {
+            //If we have reached the end of a test episode, print test data.
             double sum = 0.0;
             for (double reward : inEpisodeRewards) {
                 sum += reward;
@@ -260,13 +261,7 @@ public class RLAgent extends Agent {
                 }
                 averagedRewards.add(cumulativeSum / cumulativeRewards.size());
             }
-            //If we have reached the end of a test episode, print this data.
             printTestData(averagedRewards);
-        }
-
-        //Store the feature values for reference in later episodes.
-        for (int friendlyUnit : myFootmen) {
-//            previousFeatures.put(friendlyUnit,currentFeatures.get(friendlyUnit));
         }
 
         currentEpisode++;
@@ -296,8 +291,8 @@ public class RLAgent extends Agent {
             prevQ += oldFeatures[i] * oldWeights[i];
         }
 
-        int bestDefenderID = selectAction(stateView,historyView,footmanId);
-        double qNew = calcQValue(stateView,historyView,footmanId,bestDefenderID);
+        int bestDefenderID = selectAction(stateView, historyView, footmanId);
+        double qNew = calcQValue(stateView, historyView, footmanId, bestDefenderID);
         for (int i = 0; i < oldWeights.length; i++) {
             oldWeights[i] = oldWeights[i] + learningRate * (totalReward + gamma * qNew - prevQ) * oldFeatures[i];
         }
@@ -370,40 +365,32 @@ public class RLAgent extends Agent {
      * @return The current reward
      */
     public double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
-        double reward = 0;
+        double reward = 0.0;
         int turn = stateView.getTurnNumber() - 1;
 
-        // Loops through the last five turns
-        for (int i = 0; i < 5; i++) {
-            double rewardForTurn = 0.0;
-
-            // Calculates rewards for damage
-            for (DamageLog dlog : historyView.getDamageLogs(turn)) {
-                if (myFootmen.contains(dlog.getDefenderID())) {
-                    rewardForTurn -= dlog.getDamage();
-                } else {
-                    rewardForTurn += dlog.getDamage();
-                }
+        // Calculates rewards for damage
+        for (DamageLog dlog : historyView.getDamageLogs(turn)) {
+            if (myFootmen.contains(dlog.getDefenderID())) {
+                reward -= dlog.getDamage();
+            } else {
+                reward += dlog.getDamage();
             }
-
-            // Calculates rewards for deaths
-            for (DeathLog dlog : historyView.getDeathLogs(turn)) {
-                if (dlog.getController() == ENEMY_PLAYERNUM) {
-                    rewardForTurn += 100;
-                } else {
-                    rewardForTurn -= 100;
-                }
-            }
-
-            // Calculates rewards for previous actions
-            rewardForTurn -= historyView.getCommandsIssued(playernum, turn).get(footmanId) != null?0.1:0;
-
-            // Adds the reward for a single turn (with respect to gamma) into the reward for the set of 5 turns
-            reward += rewardForTurn * gamma;
-
-            // Prepare to look at the previous turn
-            turn--;
         }
+
+        // Calculates rewards for deaths
+        for (DeathLog dlog : historyView.getDeathLogs(turn)) {
+            if (dlog.getController() == ENEMY_PLAYERNUM) {
+                reward += 100;
+            } else {
+                reward -= 100;
+            }
+        }
+
+        // Calculates rewards for previous actions
+        reward -= historyView.getCommandsIssued(playernum, turn).get(footmanId) != null ? 0.1 : 0;
+
+        // Adds the reward for a single turn (with respect to gamma) into the reward for the set of 5 turns
+        reward *= gamma;
 
         return reward;
     }
