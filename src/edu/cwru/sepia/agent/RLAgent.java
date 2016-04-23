@@ -291,10 +291,10 @@ public class RLAgent extends Agent {
 
             // Calculates rewards for deaths
             for(DeathLog dlog : historyView.getDeathLogs(turn)) {
-                if(dlog.getController() == 0) {
-                    rewardForTurn -= 100;
-                } else {
+                if(dlog.getController() == ENEMY_PLAYERNUM) {
                     rewardForTurn += 100;
+                } else {
+                    rewardForTurn -= 100;
                 }
             }
 
