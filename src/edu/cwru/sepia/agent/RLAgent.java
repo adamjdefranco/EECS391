@@ -38,8 +38,6 @@ public class RLAgent extends Agent {
     List<Double> cumulativeRewards;
     List<Double> averagedRewards;
 
-    Map<Integer,Double[]> features;
-
     /**
      * Convenience variable specifying enemy agent number. Use this whenever referring
      * to the enemy agent. We will make sure it is set to the proper number when testing your code.
@@ -80,8 +78,6 @@ public class RLAgent extends Agent {
 
         cumulativeRewards = new ArrayList<>();
         averagedRewards = new ArrayList<>();
-        features = new HashMap<>();
-
 
         if (args.length >= 1) {
             numEpisodes = Integer.parseInt(args[0]);
@@ -116,9 +112,9 @@ public class RLAgent extends Agent {
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
         // Check to see if we are doing learning, or
         // if we are transitioning between learning and tested
-        if((currentEpisode % 15) < 5)
+        if ((currentEpisode % 15) < 5)
             isTesting = true;
-        if(currentEpisode % 15 == 5){
+        if (currentEpisode % 15 == 5) {
             isTesting = false;
             cumulativeRewards = new ArrayList<>();
         }
@@ -184,6 +180,7 @@ public class RLAgent extends Agent {
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
         return null;
+
     }
 
     /**
@@ -196,15 +193,15 @@ public class RLAgent extends Agent {
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 
         //Compute
-        if(isTesting){
+        if (isTesting) {
             double sum = 0.0;
-            for(double reward : inEpisodeRewards){
+            for (double reward : inEpisodeRewards) {
                 sum += reward;
             }
             cumulativeRewards.add(sum / inEpisodeRewards.size());
-            if(currentEpisode % 15 == 4){
+            if (currentEpisode % 15 == 4) {
                 double cumulativeSum = 0.0;
-                for(double cumulativeReward : cumulativeRewards){
+                for (double cumulativeReward : cumulativeRewards) {
                     cumulativeSum += cumulativeReward;
                 }
                 averagedRewards.add(cumulativeSum / cumulativeRewards.size());
@@ -214,7 +211,7 @@ public class RLAgent extends Agent {
         }
 
         //Store the feature values for reference in later episodes.
-        for(int friendlyUnit : myFootmen){
+        for (int friendlyUnit : myFootmen) {
 //            previousFeatures.put(friendlyUnit,currentFeatures.get(friendlyUnit));
         }
 
@@ -323,12 +320,12 @@ public class RLAgent extends Agent {
         int turn = stateView.getTurnNumber() - 1;
 
         // Loops through the last five turns
-        for(int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             double rewardForTurn = 0.0;
 
             // Calculates rewards for damage
-            for(DamageLog dlog : historyView.getDamageLogs(turn)) {
-                if(myFootmen.contains(dlog.getDefenderID())) {
+            for (DamageLog dlog : historyView.getDamageLogs(turn)) {
+                if (myFootmen.contains(dlog.getDefenderID())) {
                     rewardForTurn -= dlog.getDamage();
                 } else {
                     rewardForTurn += dlog.getDamage();
@@ -336,19 +333,19 @@ public class RLAgent extends Agent {
             }
 
             // Calculates rewards for deaths
-            for(DeathLog dlog : historyView.getDeathLogs(turn)) {
-                if(dlog.getController() == ENEMY_PLAYERNUM) {
+            for (DeathLog dlog : historyView.getDeathLogs(turn)) {
+                if (dlog.getController() == ENEMY_PLAYERNUM) {
                     rewardForTurn += 100;
                 } else {
                     rewardForTurn -= 100;
                 }
             }
 
-            // Calculates rewards for movement
-            rewardForTurn -= 0.1 * historyView.getCommandsIssued(0, turn).values().size();
+            // Calculates rewards for previous actions
+            rewardForTurn -= historyView.getCommandsIssued(playernum, turn).get(footmanId) != null?0.1:0;
 
             // Adds the reward for a single turn (with respect to gamma) into the reward for the set of 5 turns
-            reward += rewardForTurn * Math.pow(gamma, i);
+            reward += rewardForTurn * gamma;
 
             // Prepare to look at the previous turn
             turn--;
@@ -376,7 +373,7 @@ public class RLAgent extends Agent {
         double qVal = 0;
 
         // Calculates cumulative some of the features times their respective weights
-        for(int i = 0; i < featureVector.length; i++) {
+        for (int i = 0; i < featureVector.length; i++) {
             qVal += featureVector[i] * weights[i];
         }
 
