@@ -1,15 +1,14 @@
 package edu.cwru.sepia.agent;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.environment.model.history.DamageLog;
+import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
 import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 
 import java.io.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class RLAgent extends Agent {
 
@@ -25,6 +24,8 @@ public class RLAgent extends Agent {
      */
     private List<Integer> myFootmen;
     private List<Integer> enemyFootmen;
+
+    List<Double> rewards = new ArrayList<Double>();
 
     /**
      * Convenience variable specifying enemy agent number. Use this whenever referring
@@ -253,7 +254,44 @@ public class RLAgent extends Agent {
      * @return The current reward
      */
     public double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
-        return 0;
+        double reward = 0;
+        int turn = stateView.getTurnNumber() - 1;
+
+        // Loops through the last five turns
+        for(int i = 0; i < 5; i++) {
+            double rewardForTurn = 0.0;
+
+            // Calculates rewards for damage
+            for(DamageLog dlog : historyView.getDamageLogs(turn)) {
+                if(myFootmen.contains(dlog.getDefenderID())) {
+                    rewardForTurn -= dlog.getDamage();
+                } else {
+                    rewardForTurn += dlog.getDamage();
+                }
+            }
+
+            // Calculates rewards for deaths
+            for(DeathLog dlog : historyView.getDeathLogs(turn)) {
+                if(dlog.getController() == 0) {
+                    rewardForTurn -= 100;
+                } else {
+                    rewardForTurn += 100;
+                }
+            }
+
+            // Calculates rewards for movement
+            rewardForTurn -= 0.1 * historyView.getCommandsIssued(0, turn).values().size();
+
+            // Adds the reward for a single turn (with respect to gamma) into the reward for the set of 5 turns
+            reward += rewardForTurn * Math.pow(gamma, i);
+
+            // Prepare to look at the previous turn
+            turn--;
+        }
+        // Add calculated reward to the list of reward values
+        rewards.add(reward);
+
+        return reward;
     }
 
     /**
