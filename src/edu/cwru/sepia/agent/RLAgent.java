@@ -34,7 +34,11 @@ public class RLAgent extends Agent {
     private List<Integer> myFootmen;
     private List<Integer> enemyFootmen;
 
-    List<Double> rewards = new ArrayList<Double>();
+    List<Double> inEpisodeRewards;
+    List<Double> cumulativeRewards;
+    List<Double> averagedRewards;
+
+    Map<Integer,Double[]> features;
 
     /**
      * Convenience variable specifying enemy agent number. Use this whenever referring
@@ -74,6 +78,11 @@ public class RLAgent extends Agent {
 
         currentEpisode = 0;
 
+        cumulativeRewards = new ArrayList<>();
+        averagedRewards = new ArrayList<>();
+        features = new HashMap<>();
+
+
         if (args.length >= 1) {
             numEpisodes = Integer.parseInt(args[0]);
             System.out.println("Running " + numEpisodes + " episodes.");
@@ -111,8 +120,9 @@ public class RLAgent extends Agent {
             isTesting = true;
         if(currentEpisode % 15 == 5){
             isTesting = false;
-//            cumulativeRewards = new ArrayList<Double>();
+            cumulativeRewards = new ArrayList<>();
         }
+//        currentFeatures = new HashMap<>();
 
         System.out.println("Episode " + currentEpisode + " -- testing? " + isTesting);
 
@@ -185,7 +195,30 @@ public class RLAgent extends Agent {
     @Override
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 
-        // MAKE SURE YOU CALL printTestData after you finish a test episode.
+        //Compute
+        if(isTesting){
+            double sum = 0.0;
+            for(double reward : inEpisodeRewards){
+                sum += reward;
+            }
+            cumulativeRewards.add(sum / inEpisodeRewards.size());
+            if(currentEpisode % 15 == 4){
+                double cumulativeSum = 0.0;
+                for(double cumulativeReward : cumulativeRewards){
+                    cumulativeSum += cumulativeReward;
+                }
+                averagedRewards.add(cumulativeSum / cumulativeRewards.size());
+            }
+            //If we have reached the end of a test episode, print this data.
+            printTestData(averagedRewards);
+        }
+
+        //Store the feature values for reference in later episodes.
+        for(int friendlyUnit : myFootmen){
+//            previousFeatures.put(friendlyUnit,currentFeatures.get(friendlyUnit));
+        }
+
+        currentEpisode++;
 
         // Save your weights
         saveWeights(weights);
@@ -307,8 +340,6 @@ public class RLAgent extends Agent {
             // Prepare to look at the previous turn
             turn--;
         }
-        // Add calculated reward to the list of reward values
-        rewards.add(reward);
 
         return reward;
     }
