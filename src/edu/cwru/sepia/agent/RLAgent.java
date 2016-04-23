@@ -1,6 +1,8 @@
 package edu.cwru.sepia.agent;
 
 import edu.cwru.sepia.action.Action;
+import edu.cwru.sepia.action.ActionFeedback;
+import edu.cwru.sepia.action.ActionResult;
 import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
@@ -179,6 +181,58 @@ public class RLAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
+
+        boolean shouldReissueActions = false;
+
+        // Loop through all of the deathlogs, remove the dead footmen from the lists of footmen
+        for(DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
+            if (dLog.getController() == ENEMY_PLAYERNUM) {
+                enemyFootmen.remove(dLog.getDeadUnitID());
+            } else {
+                myFootmen.remove(dLog.getDeadUnitID());
+            }
+        }
+
+        // Decide whether or not a footman defender is damaged
+        for(DamageLog dLog : historyView.getDamageLogs((stateView.getTurnNumber() - 1))) {
+            if(myFootmen.contains((dLog.getDefenderID()))) {
+                shouldReissueActions = true;
+            }
+        }
+
+        Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, stateView.getTurnNumber() - 1);
+
+        // Loops through map of actionresults, if a footman is not currently doing an action, then actions should be reassigned
+        for(Map.Entry<Integer, ActionResult> entry : actionResults.entrySet()) {
+            if(myFootmen.contains(entry.getKey())) {
+                ActionFeedback actionFeedback = entry.getValue().getFeedback();
+                if(!actionFeedback.equals(ActionFeedback.INCOMPLETE)) {
+                    shouldReissueActions = true;
+                }
+            }
+        }
+
+        // If you are in a testing round then calculate the cumulative reward value and add it to inEpisodeRewards
+        if(isTesting && stateView.getTurnNumber() % 5 == 0) {
+            double reward = 0;
+            for (int i = 0; i < myFootmen.size(); i++) {
+                reward += calculateReward(stateView, historyView, myFootmen.get(i));
+            }
+            inEpisodeRewards.add(reward);
+        }
+
+        // If people have been hit (isdamage) then reassign everyone to do something else
+        // Or, if there's anyone who needs something to do, reassign
+        if(shouldReissueActions) {
+
+        } else {
+
+        }
+
+        // Calculate netReward
+
+        // is current turn we're on one we should learn? if so, learn
+
         return null;
 
     }
