@@ -308,11 +308,16 @@ public class RLAgent extends Agent {
      * @param defenderId  An enemy footman that your footman would be attacking
      * @return The approximate Q-value
      */
-    public double calcQValue(State.StateView stateView,
-                             History.HistoryView historyView,
-                             int attackerId,
-                             int defenderId) {
-        return 0;
+    public double calcQValue(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
+        double[] featureVector = calculateFeatureVector(stateView, historyView, attackerId, defenderId);
+        double qVal = 0;
+
+        // Calculates cumulative some of the features times their respective weights
+        for(int i = 0; i < featureVector.length; i++) {
+            qVal += featureVector[i] * weights[i];
+        }
+
+        return qVal;
     }
 
     /**
@@ -332,10 +337,7 @@ public class RLAgent extends Agent {
      * @param defenderId  An enemy footman. The one you are considering attacking.
      * @return The array of feature function outputs.
      */
-    public double[] calculateFeatureVector(State.StateView stateView,
-                                           History.HistoryView historyView,
-                                           int attackerId,
-                                           int defenderId) {
+    public double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
         return null;
     }
 
