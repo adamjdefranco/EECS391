@@ -6,10 +6,7 @@ import edu.cwru.sepia.environment.model.state.State;
 import edu.cwru.sepia.environment.model.state.Unit;
 
 import java.io.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class RLAgent extends Agent {
 
@@ -19,6 +16,15 @@ public class RLAgent extends Agent {
      * and call sys.exit(0)
      */
     public final int numEpisodes;
+    /**
+     * The current episode that the agent is on. Will be used to terminate the learning phase
+     * after the given number of episodes.
+     */
+    public int currentEpisode;
+    /**
+     * Convenience boolean for determining if we should be learning or testing the policy
+     */
+    boolean isTesting;
 
     /**
      * List of your footmen and your enemies footmen
@@ -62,6 +68,8 @@ public class RLAgent extends Agent {
     public RLAgent(int playernum, String[] args) {
         super(playernum);
 
+        currentEpisode = 0;
+
         if (args.length >= 1) {
             numEpisodes = Integer.parseInt(args[0]);
             System.out.println("Running " + numEpisodes + " episodes.");
@@ -93,8 +101,16 @@ public class RLAgent extends Agent {
      */
     @Override
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
+        // Check to see if we are doing learning, or
+        // if we are transitioning between learning and tested
+        if((currentEpisode % 15) < 5)
+            isTesting = true;
+        if(currentEpisode % 15 == 5){
+            isTesting = false;
+//            cumulativeRewards = new ArrayList<Double>();
+        }
 
-        // You will need to add code to check if you are in a testing or learning episode
+        System.out.println("Episode " + currentEpisode + " -- testing? " + isTesting);
 
         // Find all of your units
         myFootmen = new LinkedList<>();
