@@ -199,7 +199,11 @@ public class RLAgent extends Agent {
         boolean recomputeDueToDeath = historyView.getDeathLogs(stateView.getTurnNumber() - 1).size() > 0;
         boolean recomputeDueToActionIssued = historyView.getCommandsIssued(playernum, stateView.getTurnNumber() - 1).size() > 0;
 
-        boolean shouldComputeReward = stateView.getTurnNumber() == 0 || recomputeDueToDamage || recomputeDueToDeath || recomputeDueToActionIssued;
+        boolean shouldComputeReward = stateView.getTurnNumber() != 0 || recomputeDueToDamage || recomputeDueToDeath || recomputeDueToActionIssued;
+
+        boolean shouldIssueActions = stateView.getTurnNumber() == 0 || shouldComputeReward;
+
+        boolean shouldLearn = stateView.getTurnNumber() % 5 == 0 && stateView.getTurnNumber() != 0;
 
         // Loop through all of the deathlogs, remove the dead footmen from the lists of footmen
         for (DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
@@ -224,7 +228,7 @@ public class RLAgent extends Agent {
         }
 
         // Is current turn we're on one we should learn? if so, learn
-        if (stateView.getTurnNumber() % 5 == 0) {
+        if (shouldLearn) {
             for (int footmanID : myFootmen) {
                 Double[] features;
                 if(previousFeatures.containsKey(footmanID)){
@@ -239,7 +243,7 @@ public class RLAgent extends Agent {
         }
 
         Map<Integer, Action> issueActions = null;
-        if (shouldComputeReward) {
+        if (shouldIssueActions) {
             issueActions = new HashMap<>();
             // If people have been hit (isdamage) then reassign everyone to do something else
             // Or, if there's anyone who needs something to do, reassign
@@ -289,6 +293,9 @@ public class RLAgent extends Agent {
             }
         }
 
+        if(myFootmen.size() > enemyFootmen.size()){
+            System.out.println("We win the previous episode.");
+        }
 
 
         currentEpisode++;
@@ -475,19 +482,17 @@ public class RLAgent extends Agent {
         //Constant
         Double[] features = new Double[]{1.0, 0.0, 0.0, 0.0};
 
-        //How many enemy footman are damaged or killed
-        int affectedFootman = 0;
-        for (DamageLog dlog : historyView.getDamageLogs(stateView.getTurnNumber() - 1)) {
-            if (dlog.getDefenderController() == ENEMY_PLAYERNUM) {
-                affectedFootman++;
+        //If the enemy we are attacking is attacking me
+        double isAttackingEnemyAttackingMe = 0.0;
+        if(stateView.getTurnNumber() > 0) {
+            List<DamageLog> dlogs = historyView.getDamageLogs(stateView.getTurnNumber() - 1);
+            for(DamageLog log : dlogs){
+                if(log.getAttackerID() == defenderId && log.getDefenderID() == attackerId){
+                    isAttackingEnemyAttackingMe = 1.0;
+                }
             }
         }
-        for (DeathLog dlog : historyView.getDeathLogs(stateView.getTurnNumber() - 1)) {
-            if (enemyFootmen.contains(dlog.getDeadUnitID())) {
-                affectedFootman++;
-            }
-        }
-        features[1] = (double) affectedFootman;
+        features[1] = isAttackingEnemyAttackingMe;
 
         //Distance between attacker and defender
         Unit.UnitView attacker = stateView.getUnit(attackerId);
