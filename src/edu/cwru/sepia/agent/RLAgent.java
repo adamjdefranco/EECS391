@@ -3,6 +3,7 @@ package edu.cwru.sepia.agent;
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.action.ActionFeedback;
 import edu.cwru.sepia.action.ActionResult;
+import edu.cwru.sepia.action.ActionType;
 import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
@@ -49,7 +50,7 @@ public class RLAgent extends Agent {
     /**
      * Set this to whatever size your feature vector is.
      */
-    public static final int NUM_FEATURES = 5;
+    public static final int NUM_FEATURES = 4;
 
     /**
      * Use this random number generator for your epsilon exploration. When you submit we will
@@ -464,7 +465,32 @@ public class RLAgent extends Agent {
      * @return The array of feature function outputs.
      */
     public double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
-        return null;
+        //Constant
+        double[] features = new double[]{1.0,0.0,0.0,0.0};
+
+        //How many enemy footman are damaged or killed
+        int affectedFootman = 0;
+        for(DamageLog dlog : historyView.getDamageLogs(stateView.getTurnNumber()-1)){
+            if(dlog.getDefenderController() == ENEMY_PLAYERNUM){
+                affectedFootman++;
+            }
+        }
+        for(DeathLog dlog : historyView.getDeathLogs(stateView.getTurnNumber()-1)){
+            if(enemyFootmen.contains(dlog.getDeadUnitID())){
+                affectedFootman++;
+            }
+        }
+        features[1] = affectedFootman;
+
+        //Distance between attacker and defender
+        Unit.UnitView attacker = stateView.getUnit(attackerId);
+        Unit.UnitView defender = stateView.getUnit(defenderId);
+        features[2] = 1 / (Math.abs(attacker.getXPosition()-defender.getXPosition()) + Math.abs(attacker.getYPosition() - defender.getYPosition()));
+
+        //Ratio of health
+        features[3] = attacker.getHP() / defender.getHP();
+
+        return features;
     }
 
     /**
