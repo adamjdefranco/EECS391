@@ -3,7 +3,6 @@ package edu.cwru.sepia.agent;
 import edu.cwru.sepia.action.Action;
 import edu.cwru.sepia.action.ActionFeedback;
 import edu.cwru.sepia.action.ActionResult;
-import edu.cwru.sepia.action.ActionType;
 import edu.cwru.sepia.environment.model.history.DamageLog;
 import edu.cwru.sepia.environment.model.history.DeathLog;
 import edu.cwru.sepia.environment.model.history.History;
@@ -36,6 +35,7 @@ public class RLAgent extends Agent {
      */
     private List<Integer> myFootmen;
     private List<Integer> enemyFootmen;
+    private List<Integer> actionDooers;
 
     List<Double> inEpisodeRewards;
     List<Double> cumulativeRewards;
@@ -115,12 +115,14 @@ public class RLAgent extends Agent {
     public Map<Integer, Action> initialStep(State.StateView stateView, History.HistoryView historyView) {
         // Check to see if we are doing learning, or
         // if we are transitioning between learning and tested
-        if ((currentEpisode % 15) < 5)
-            isTesting = true;
-        if (currentEpisode % 15 == 5) {
+        if ((currentEpisode % 15) < 10)
             isTesting = false;
+        if (currentEpisode % 15 == 10) {
+            isTesting = true;
             cumulativeRewards = new ArrayList<>();
         }
+
+        inEpisodeRewards = new ArrayList<>();
 
         System.out.println("Episode " + currentEpisode + " -- testing? " + isTesting);
 
@@ -184,12 +186,16 @@ public class RLAgent extends Agent {
 
         boolean shouldReissueActions = false;
 
+        actionDooers = new ArrayList<>();
+
+        actionDooers.addAll(myFootmen);
+
         // Loop through all of the deathlogs, remove the dead footmen from the lists of footmen
         for (DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
             if (dLog.getController() == ENEMY_PLAYERNUM) {
-                enemyFootmen.remove(dLog.getDeadUnitID());
+                enemyFootmen.remove((Integer) dLog.getDeadUnitID());
             } else {
-                myFootmen.remove(dLog.getDeadUnitID());
+                myFootmen.remove((Integer) dLog.getDeadUnitID());
             }
         }
 
@@ -202,12 +208,17 @@ public class RLAgent extends Agent {
 
         Map<Integer, ActionResult> actionResults = historyView.getCommandFeedback(playernum, stateView.getTurnNumber() - 1);
 
-        // Loops through map of actionresults, if a footman is not currently doing an action, then actions should be reassigned
-        for (Map.Entry<Integer, ActionResult> entry : actionResults.entrySet()) {
-            if (myFootmen.contains(entry.getKey())) {
-                ActionFeedback actionFeedback = entry.getValue().getFeedback();
-                if (!actionFeedback.equals(ActionFeedback.INCOMPLETE)) {
-                    shouldReissueActions = true;
+        if (actionResults.size() == 0) {
+            shouldReissueActions = true;
+        } else {
+            // Loops through map of actionresults, if a footman is not currently doing an action, then actions should be reassigned
+            for (Map.Entry<Integer, ActionResult> entry : actionResults.entrySet()) {
+                if (myFootmen.contains(entry.getKey())) {
+                    ActionFeedback actionFeedback = entry.getValue().getFeedback();
+                    if (!actionFeedback.equals(ActionFeedback.INCOMPLETE)) {
+                        shouldReissueActions = true;
+                        actionDooers.remove(entry.getKey());
+                    }
                 }
             }
         }
@@ -217,10 +228,10 @@ public class RLAgent extends Agent {
         // If people have been hit (isdamage) then reassign everyone to do something else
         // Or, if there's anyone who needs something to do, reassign
         if (shouldReissueActions) {
-            for(int i = 0; i < myFootmen.size(); i++) {
+            issueActions = new HashMap<>();
+            for (int i = 0; i < myFootmen.size(); i++) {
                 int currentFootman = myFootmen.get(i);
                 int enemyID = selectAction(stateView, historyView, currentFootman);
-                issueActions = new HashMap<>();
                 if (inRange(stateView, myFootmen.get(i), enemyID)) {
                     issueActions.put(currentFootman, Action.createPrimitiveAttack(currentFootman, enemyID));
                 } else {
@@ -231,14 +242,14 @@ public class RLAgent extends Agent {
 
         // Calculate netReward
         Double reward = 0.0;
-        for(int i = 0; i < myFootmen.size(); i++) {
+        for (int i = 0; i < myFootmen.size(); i++) {
             reward += calculateReward(stateView, historyView, myFootmen.get(i));
         }
         inEpisodeRewards.add(reward);
 
         // Is current turn we're on one we should learn? if so, learn
-        if (!isTesting && stateView.getTurnNumber() % 5 == 0) {
-            for(int i = 0; i < myFootmen.size(); i++) {
+        if (stateView.getTurnNumber() % 5 == 0) {
+            for (int i = 0; i < myFootmen.size(); i++) {
                 int enemyID = selectAction(stateView, historyView, myFootmen.get(i));
 //                Double[] DoubleWeights = new Double[weights.length];
 //                for(int j = 0; i < weights.length; i++) {
@@ -250,8 +261,9 @@ public class RLAgent extends Agent {
 //                    weights[k] = weightsLower[k];
 //                }
             }
+//            System.out.println("Updating weights: "+Arrays.toString(weights));
         }
-
+//        System.out.println("Reward: " + reward);
         return issueActions;
 
     }
@@ -406,6 +418,7 @@ public class RLAgent extends Agent {
         // Calculates rewards for deaths
         for (DeathLog dlog : historyView.getDeathLogs(turn)) {
             if (dlog.getController() == ENEMY_PLAYERNUM) {
+                System.out.println("We killed someone! Turn " + (stateView.getTurnNumber() - 1));
                 reward += 100;
             } else {
                 reward -= 100;
@@ -413,7 +426,7 @@ public class RLAgent extends Agent {
         }
 
         // Calculates rewards for previous actions
-        reward -= historyView.getCommandsIssued(playernum, turn).get(footmanId) != null ? 0.1 : 0;
+        reward -= actionDooers.contains(footmanId) ? 0.1 : 0;
 
         // Adds the reward for a single turn (with respect to gamma) into the reward for the set of 5 turns
         reward *= gamma;
@@ -466,17 +479,17 @@ public class RLAgent extends Agent {
      */
     public Double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
         //Constant
-        Double[] features = new Double[]{1.0,0.0,0.0,0.0};
+        Double[] features = new Double[]{1.0, 0.0, 0.0, 0.0};
 
         //How many enemy footman are damaged or killed
         int affectedFootman = 0;
-        for(DamageLog dlog : historyView.getDamageLogs(stateView.getTurnNumber()-1)){
-            if(dlog.getDefenderController() == ENEMY_PLAYERNUM){
+        for (DamageLog dlog : historyView.getDamageLogs(stateView.getTurnNumber() - 1)) {
+            if (dlog.getDefenderController() == ENEMY_PLAYERNUM) {
                 affectedFootman++;
             }
         }
-        for(DeathLog dlog : historyView.getDeathLogs(stateView.getTurnNumber()-1)){
-            if(enemyFootmen.contains(dlog.getDeadUnitID())){
+        for (DeathLog dlog : historyView.getDeathLogs(stateView.getTurnNumber() - 1)) {
+            if (enemyFootmen.contains(dlog.getDeadUnitID())) {
                 affectedFootman++;
             }
         }
@@ -485,10 +498,10 @@ public class RLAgent extends Agent {
         //Distance between attacker and defender
         Unit.UnitView attacker = stateView.getUnit(attackerId);
         Unit.UnitView defender = stateView.getUnit(defenderId);
-        features[2] = 1.0 / (Math.abs(attacker.getXPosition()-defender.getXPosition()) + Math.abs(attacker.getYPosition() - defender.getYPosition()));
+        features[2] = 1.0 / (Math.abs(attacker.getXPosition() - defender.getXPosition()) + Math.abs(attacker.getYPosition() - defender.getYPosition()));
 
         //Ratio of health
-        features[3] = ((double)attacker.getHP()) / ((double)defender.getHP());
+        features[3] = ((double) attacker.getHP()) / ((double) defender.getHP());
 
         return features;
     }
