@@ -212,29 +212,55 @@ public class RLAgent extends Agent {
             }
         }
 
-        // If you are in a testing round then calculate the cumulative reward value and add it to inEpisodeRewards
-        if (isTesting && stateView.getTurnNumber() % 5 == 0) {
-            double reward = 0;
-            for (int i = 0; i < myFootmen.size(); i++) {
-                reward += calculateReward(stateView, historyView, myFootmen.get(i));
-            }
-            inEpisodeRewards.add(reward);
-        }
+        HashMap<Integer, Action> issueActions = null;
 
         // If people have been hit (isdamage) then reassign everyone to do something else
         // Or, if there's anyone who needs something to do, reassign
         if (shouldReissueActions) {
-
-        } else {
-
+            for(int i = 0; i < myFootmen.size(); i++) {
+                int currentFootman = myFootmen.get(i);
+                int enemyID = selectAction(stateView, historyView, currentFootman);
+                issueActions = new HashMap<>();
+                if (inRange(stateView, myFootmen.get(i), enemyID)) {
+                    issueActions.put(currentFootman, Action.createPrimitiveAttack(currentFootman, enemyID));
+                } else {
+                    issueActions.put(currentFootman, Action.createCompoundAttack(currentFootman, enemyID));
+                }
+            }
         }
 
         // Calculate netReward
+        double reward = 0;
+        for(int i = 0; i < myFootmen.size(); i++) {
+            reward += calculateReward(stateView, historyView, myFootmen.get(i));
+        }
+        inEpisodeRewards.add(reward);
 
-        // is current turn we're on one we should learn? if so, learn
+        // Is current turn we're on one we should learn? if so, learn
+        if (!isTesting && stateView.getTurnNumber() % 5 == 0) {
+            for(int i = 0; i < myFootmen.size(); i++) {
+                int enemyID = selectAction(stateView, historyView, myFootmen.get(i));
+                double[] doubleWeights = new double[weights.length];
+                for(int j = 0; i < weights.length; i++) {
+                    doubleWeights[j] = weights[j];
+                }
+                double[] weightsLower;
+                weightsLower = updateWeights(doubleWeights, calculateFeatureVector(stateView, historyView, myFootmen.get(i), enemyID), reward, stateView, historyView, myFootmen.get(i));
+                for(int k = 0; k < weightsLower.length; k++) {
+                    weights[k] = weightsLower[k];
+                }
+            }
+        }
 
-        return null;
+        return issueActions;
 
+    }
+
+    public boolean inRange(State.StateView stateView, int friendlyID, int enemyID) {
+        boolean isInRange = true;
+        isInRange = Math.abs(stateView.getUnit(friendlyID).getXPosition() - stateView.getUnit(enemyID).getXPosition()) <= 1;
+        isInRange = isInRange && Math.abs(stateView.getUnit(friendlyID).getYPosition() - stateView.getUnit(enemyID).getYPosition()) <= 1;
+        return isInRange;
     }
 
     /**
