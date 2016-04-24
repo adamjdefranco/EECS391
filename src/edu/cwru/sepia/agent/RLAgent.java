@@ -69,10 +69,10 @@ public class RLAgent extends Agent {
      * changing them.
      */
     //Discount Factor
-    public final double gamma = 0.9;
-    public final double learningRate = .0001;
+    public final Double gamma = 0.9;
+    public final Double learningRate = .0001;
     //Epsilon value for Epsilon-Greedy Exploration Strategy
-    public final double epsilon = .02;
+    public final Double epsilon = .02;
 
     public RLAgent(int playernum, String[] args) {
         super(playernum);
@@ -230,7 +230,7 @@ public class RLAgent extends Agent {
         }
 
         // Calculate netReward
-        double reward = 0;
+        Double reward = 0.0;
         for(int i = 0; i < myFootmen.size(); i++) {
             reward += calculateReward(stateView, historyView, myFootmen.get(i));
         }
@@ -240,15 +240,15 @@ public class RLAgent extends Agent {
         if (!isTesting && stateView.getTurnNumber() % 5 == 0) {
             for(int i = 0; i < myFootmen.size(); i++) {
                 int enemyID = selectAction(stateView, historyView, myFootmen.get(i));
-                double[] doubleWeights = new double[weights.length];
-                for(int j = 0; i < weights.length; i++) {
-                    doubleWeights[j] = weights[j];
-                }
-                double[] weightsLower;
-                weightsLower = updateWeights(doubleWeights, calculateFeatureVector(stateView, historyView, myFootmen.get(i), enemyID), reward, stateView, historyView, myFootmen.get(i));
-                for(int k = 0; k < weightsLower.length; k++) {
-                    weights[k] = weightsLower[k];
-                }
+//                Double[] DoubleWeights = new Double[weights.length];
+//                for(int j = 0; i < weights.length; i++) {
+//                    DoubleWeights[j] = weights[j];
+//                }
+//                Double[] weightsLower;
+                weights = updateWeights(weights, calculateFeatureVector(stateView, historyView, myFootmen.get(i), enemyID), reward, stateView, historyView, myFootmen.get(i));
+//                for(int k = 0; k < weightsLower.length; k++) {
+//                    weights[k] = weightsLower[k];
+//                }
             }
         }
 
@@ -275,14 +275,14 @@ public class RLAgent extends Agent {
         //Compute
         if (isTesting) {
             //If we have reached the end of a test episode, print test data.
-            double sum = 0.0;
-            for (double reward : inEpisodeRewards) {
+            Double sum = 0.0;
+            for (Double reward : inEpisodeRewards) {
                 sum += reward;
             }
             cumulativeRewards.add(sum / inEpisodeRewards.size());
             if (currentEpisode % 15 == 4) {
-                double cumulativeSum = 0.0;
-                for (double cumulativeReward : cumulativeRewards) {
+                Double cumulativeSum = 0.0;
+                for (Double cumulativeReward : cumulativeRewards) {
                     cumulativeSum += cumulativeReward;
                 }
                 averagedRewards.add(cumulativeSum / cumulativeRewards.size());
@@ -308,17 +308,17 @@ public class RLAgent extends Agent {
      * @param footmanId   The footman we are updating the weights for
      * @return The updated weight vector.
      */
-    public double[] updateWeights(double[] oldWeights, double[] oldFeatures, double totalReward, State.StateView stateView, History.HistoryView historyView, int footmanId) {
+    public Double[] updateWeights(Double[] oldWeights, Double[] oldFeatures, Double totalReward, State.StateView stateView, History.HistoryView historyView, int footmanId) {
         if (isTesting) {
             return oldWeights;
         }
-        double prevQ = 0.0;
+        Double prevQ = 0.0;
         for (int i = 0; i < oldFeatures.length; i++) {
             prevQ += oldFeatures[i] * oldWeights[i];
         }
 
         int bestDefenderID = selectAction(stateView, historyView, footmanId);
-        double qNew = calcQValue(stateView, historyView, footmanId, bestDefenderID);
+        Double qNew = calcQValue(stateView, historyView, footmanId, bestDefenderID);
         for (int i = 0; i < oldWeights.length; i++) {
             oldWeights[i] = oldWeights[i] + learningRate * (totalReward + gamma * qNew - prevQ) * oldFeatures[i];
         }
@@ -345,9 +345,9 @@ public class RLAgent extends Agent {
         } else {
             // We are following the policy. Look at the Q value for attacking each enemy and
             // pick the enemy whose q value is largest.
-            double maxQValue = Double.NEGATIVE_INFINITY;
+            Double maxQValue = Double.NEGATIVE_INFINITY;
             for (int enemy : enemyFootmen) {
-                double qValue = calcQValue(stateView, historyView, attackerId, enemy);
+                Double qValue = calcQValue(stateView, historyView, attackerId, enemy);
                 if (qValue > maxQValue) {
                     maxQValue = qValue;
                     enemyID = enemy;
@@ -390,8 +390,8 @@ public class RLAgent extends Agent {
      * @param footmanId   The footman ID you are looking for the reward from.
      * @return The current reward
      */
-    public double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
-        double reward = 0.0;
+    public Double calculateReward(State.StateView stateView, History.HistoryView historyView, int footmanId) {
+        Double reward = 0.0;
         int turn = stateView.getTurnNumber() - 1;
 
         // Calculates rewards for damage
@@ -435,9 +435,9 @@ public class RLAgent extends Agent {
      * @param defenderId  An enemy footman that your footman would be attacking
      * @return The approximate Q-value
      */
-    public double calcQValue(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
-        double[] featureVector = calculateFeatureVector(stateView, historyView, attackerId, defenderId);
-        double qVal = 0;
+    public Double calcQValue(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
+        Double[] featureVector = calculateFeatureVector(stateView, historyView, attackerId, defenderId);
+        Double qVal = 0.0;
 
         // Calculates cumulative some of the features times their respective weights
         for (int i = 0; i < featureVector.length; i++) {
@@ -451,7 +451,7 @@ public class RLAgent extends Agent {
      * Given a state and action calculate your features here. Please include a comment explaining what features
      * you chose and why you chose them.
      * <p>
-     * All of your feature functions should evaluate to a double. Collect all of these into an array. You will
+     * All of your feature functions should evaluate to a Double. Collect all of these into an array. You will
      * take a dot product of this array with the weights array to get a Q-value for a given state action.
      * <p>
      * It is a good idea to make the first value in your array a constant. This just helps remove any offset
@@ -464,9 +464,9 @@ public class RLAgent extends Agent {
      * @param defenderId  An enemy footman. The one you are considering attacking.
      * @return The array of feature function outputs.
      */
-    public double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
+    public Double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
         //Constant
-        double[] features = new double[]{1.0,0.0,0.0,0.0};
+        Double[] features = new Double[]{1.0,0.0,0.0,0.0};
 
         //How many enemy footman are damaged or killed
         int affectedFootman = 0;
@@ -480,15 +480,15 @@ public class RLAgent extends Agent {
                 affectedFootman++;
             }
         }
-        features[1] = affectedFootman;
+        features[1] = (double) affectedFootman;
 
         //Distance between attacker and defender
         Unit.UnitView attacker = stateView.getUnit(attackerId);
         Unit.UnitView defender = stateView.getUnit(defenderId);
-        features[2] = 1 / (Math.abs(attacker.getXPosition()-defender.getXPosition()) + Math.abs(attacker.getYPosition() - defender.getYPosition()));
+        features[2] = 1.0 / (Math.abs(attacker.getXPosition()-defender.getXPosition()) + Math.abs(attacker.getYPosition() - defender.getYPosition()));
 
         //Ratio of health
-        features[3] = attacker.getHP() / defender.getHP();
+        features[3] = ((double)attacker.getHP()) / ((double)defender.getHP());
 
         return features;
     }
@@ -538,7 +538,7 @@ public class RLAgent extends Agent {
             // open a new file writer. Set append to false
             BufferedWriter writer = new BufferedWriter(new FileWriter(path, false));
 
-            for (double weight : weights) {
+            for (Double weight : weights) {
                 writer.write(String.format("%f\n", weight));
             }
             writer.flush();
