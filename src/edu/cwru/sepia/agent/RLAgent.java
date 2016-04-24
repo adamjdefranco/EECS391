@@ -120,7 +120,6 @@ public class RLAgent extends Agent {
             isTesting = false;
             cumulativeRewards = new ArrayList<>();
         }
-//        currentFeatures = new HashMap<>();
 
         System.out.println("Episode " + currentEpisode + " -- testing? " + isTesting);
 
