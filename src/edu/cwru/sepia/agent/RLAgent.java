@@ -194,18 +194,12 @@ public class RLAgent extends Agent {
     @Override
     public Map<Integer, Action> middleStep(State.StateView stateView, History.HistoryView historyView) {
 
-        if (currentEpisode > numEpisodes) {
-            System.out.println("Exiting.");
-            printTestData(averagedRewards);
-            System.exit(0);
-        }
-
         //We want to check and see if we should be computing reward, etc.
         boolean recomputeDueToDamage = historyView.getDamageLogs(stateView.getTurnNumber() - 1).size() > 0;
         boolean recomputeDueToDeath = historyView.getDeathLogs(stateView.getTurnNumber() - 1).size() > 0;
         boolean recomputeDueToActionIssued = historyView.getCommandsIssued(playernum, stateView.getTurnNumber() - 1).size() > 0;
 
-        boolean shouldComputeReward = recomputeDueToDamage || recomputeDueToDeath || recomputeDueToActionIssued;
+        boolean shouldComputeReward = stateView.getTurnNumber() == 0 || recomputeDueToDamage || recomputeDueToDeath || recomputeDueToActionIssued;
 
         // Loop through all of the deathlogs, remove the dead footmen from the lists of footmen
         for (DeathLog dLog : historyView.getDeathLogs((stateView.getTurnNumber() - 1))) {
@@ -217,21 +211,30 @@ public class RLAgent extends Agent {
         }
 
         if (shouldComputeReward) {
-            // Calculate netReward
             Double reward = 0.0;
             for (int footmanID : myFootmen) {
                 double previousRewards = rewardsPerUnit.get(footmanID);
-                rewardsPerUnit.put(footmanID,previousRewards + calculateReward(stateView, historyView, footmanID));
+                double footmanIndividualReward = calculateReward(stateView, historyView, footmanID);
+                rewardsPerUnit.put(footmanID,previousRewards + footmanIndividualReward*gamma);
+                reward += footmanIndividualReward;
             }
             inEpisodeRewards.add(reward);
+            previousFeatures = currentFeatures;
+            currentFeatures = new HashMap<>();
         }
 
         // Is current turn we're on one we should learn? if so, learn
         if (stateView.getTurnNumber() % 5 == 0) {
             for (int footmanID : myFootmen) {
-                int enemyID = selectAction(stateView, historyView, footmanID);
-                Double[] featureVector = calculateFeatureVector(stateView, historyView, footmanID, enemyID);
-                weights = updateWeights(weights, featureVector, rewardsPerUnit.get(footmanID), stateView, historyView, footmanID);
+                Double[] features;
+                if(previousFeatures.containsKey(footmanID)){
+                    features = previousFeatures.get(footmanID);
+                } else {
+                    System.out.println("Episode "+currentEpisode+", turn "+stateView.getTurnNumber()+" has no previous features.");
+                    int bestEnemyID = selectAction(stateView,historyView,footmanID);
+                    features = calculateFeatureVector(stateView,historyView,footmanID,bestEnemyID);
+                }
+                weights = updateWeights(weights, features, rewardsPerUnit.get(footmanID), stateView, historyView, footmanID);
             }
         }
 
@@ -286,14 +289,17 @@ public class RLAgent extends Agent {
             }
         }
 
-        if (currentEpisode == numEpisodes - 1) {
-            printTestData(averagedRewards);
-        }
+
 
         currentEpisode++;
 
         // Save your weights
         saveWeights(weights);
+
+        if (currentEpisode == numEpisodes - 1) {
+            printTestData(averagedRewards);
+            System.exit(0);
+        }
 
     }
 
@@ -406,10 +412,9 @@ public class RLAgent extends Agent {
         for (DeathLog dlog : historyView.getDeathLogs(turn)) {
             //TODO split these rewards among the number of units alive that turn
             if (dlog.getController() == ENEMY_PLAYERNUM) {
-                System.out.println("We killed someone! Turn " + (turn));
-                reward += (100);
+                reward += (100.0 / myFootmen.size());
             } else {
-                reward -= (100);
+                reward -= (100.0/ myFootmen.size());
             }
         }
 
@@ -463,6 +468,10 @@ public class RLAgent extends Agent {
      * @return The array of feature function outputs.
      */
     public Double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
+        if(currentFeatures.containsKey(attackerId)){
+            return currentFeatures.get(attackerId);
+        }
+
         //Constant
         Double[] features = new Double[]{1.0, 0.0, 0.0, 0.0};
 
@@ -487,6 +496,8 @@ public class RLAgent extends Agent {
 
         //Ratio of health
         features[3] = ((double) attacker.getHP()) / ((double) defender.getHP());
+
+        currentFeatures.put(attackerId,features);
 
         return features;
     }
