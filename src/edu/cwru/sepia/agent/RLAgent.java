@@ -40,9 +40,11 @@ public class RLAgent extends Agent {
     List<Double> cumulativeRewards;
     List<Double> averagedRewards;
 
+    //Feature storage, used when updating weights
     Map<Integer, Double[]> previousFeatures;
     Map<Integer, Double[]> currentFeatures;
 
+    //Storing cumulative reward per footman.
     Map<Integer, Double> rewardsPerUnit;
 
     /**
@@ -214,8 +216,10 @@ public class RLAgent extends Agent {
             }
         }
 
+        //If we need to update the rewards, do so.
         if (shouldComputeReward) {
             Double reward = 0.0;
+            //Update the individual rewards
             for (int footmanID : myFootmen) {
                 double previousRewards = rewardsPerUnit.get(footmanID);
                 double footmanIndividualReward = calculateReward(stateView, historyView, footmanID);
@@ -227,7 +231,7 @@ public class RLAgent extends Agent {
             currentFeatures = new HashMap<>();
         }
 
-        // Is current turn we're on one we should learn? if so, learn
+        // Is current turn we're on one we should learn (update weights)? if so, learn
         if (shouldLearn) {
             for (int footmanID : myFootmen) {
                 Double[] features;
@@ -242,6 +246,7 @@ public class RLAgent extends Agent {
             }
         }
 
+        //Issue actions to units if they need actions.
         Map<Integer, Action> issueActions = null;
         if (shouldIssueActions) {
             issueActions = new HashMap<>();
@@ -261,6 +266,13 @@ public class RLAgent extends Agent {
 
     }
 
+    /**
+     * Determines if the two units are in attack range of each other.
+     * @param stateView
+     * @param friendlyID
+     * @param enemyID
+     * @return
+     */
     public boolean inRange(State.StateView stateView, int friendlyID, int enemyID) {
         return Math.abs(stateView.getUnit(friendlyID).getXPosition() - stateView.getUnit(enemyID).getXPosition()) <= 1 && Math.abs(stateView.getUnit(friendlyID).getYPosition() - stateView.getUnit(enemyID).getYPosition()) <= 1;
     }
@@ -274,9 +286,8 @@ public class RLAgent extends Agent {
     @Override
     public void terminalStep(State.StateView stateView, History.HistoryView historyView) {
 
-        //Compute
         if (isTesting) {
-            //If we have reached the end of a test episode, print test data.
+            //If we have reached the end of a test episode, compute cumulative reward data.
             Double sum = 0.0;
             for (Double reward : inEpisodeRewards) {
                 sum += reward;
@@ -293,16 +304,17 @@ public class RLAgent extends Agent {
             }
         }
 
+        //Debug long for winning episodes
         if(myFootmen.size() > enemyFootmen.size()){
             System.out.println("We win the previous episode.");
         }
-
 
         currentEpisode++;
 
         // Save your weights
         saveWeights(weights);
 
+        //Print the test data at the end of all the episodes
         if (currentEpisode == numEpisodes - 1) {
             printTestData(averagedRewards);
             System.exit(0);
@@ -322,9 +334,11 @@ public class RLAgent extends Agent {
      * @return The updated weight vector.
      */
     public Double[] updateWeights(Double[] oldWeights, Double[] oldFeatures, Double totalReward, State.StateView stateView, History.HistoryView historyView, int footmanId) {
+        //We don't want to update the weights if we are testing.
         if (isTesting) {
             return oldWeights;
         }
+        //Update weights using the algorithm given in class.
         Double prevQ = 0.0;
         for (int i = 0; i < oldFeatures.length; i++) {
             prevQ += oldFeatures[i] * oldWeights[i];
@@ -347,6 +361,7 @@ public class RLAgent extends Agent {
      * @return The enemy footman ID this unit should attack
      */
     public int selectAction(State.StateView stateView, History.HistoryView historyView, int attackerId) {
+        //Uses greedy epsilon selection
         int enemyID = -1;
         // Decide whether or not to follow the policy based on the Epsilon Greedy Exploration Strategy
         Double percentToFollowPolicy = random.nextDouble();
@@ -417,7 +432,6 @@ public class RLAgent extends Agent {
 
         // Calculates rewards for deaths
         for (DeathLog dlog : historyView.getDeathLogs(turn)) {
-            //TODO split these rewards among the number of units alive that turn
             if (dlog.getController() == ENEMY_PLAYERNUM) {
                 reward += (100.0 / myFootmen.size());
             } else {
@@ -475,6 +489,7 @@ public class RLAgent extends Agent {
      * @return The array of feature function outputs.
      */
     public Double[] calculateFeatureVector(State.StateView stateView, History.HistoryView historyView, int attackerId, int defenderId) {
+        //If we have already cached this value, reretrieve it
         if(currentFeatures.containsKey(attackerId)){
             return currentFeatures.get(attackerId);
         }
@@ -502,6 +517,7 @@ public class RLAgent extends Agent {
         //Ratio of health
         features[3] = ((double) attacker.getHP()) / ((double) defender.getHP());
 
+        //Cache features
         currentFeatures.put(attackerId,features);
 
         return features;
